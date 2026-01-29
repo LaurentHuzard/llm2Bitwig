@@ -1,55 +1,99 @@
-# Implementation Plan - Finish MCP for LLM Support
+# Implementation Plan - Expanded Bitwig API Coverage (Multi-Sprint)
 
 ## Goal Description
-Complete the MCP toolset to allow LLM agents to fully control Bitwig Studio, specifically focusing on content creation (browsing/inserting) and transport control. This bridges the gap between "controlling existing parameters" and "creating new sounds/arrangements".
+Expand the MCP toolset toward **full Bitwig API coverage** based on `bitwig-api-docs/`, delivered in **phased milestones**. Each tool implementation is committed separately using the format `feat(tool): <tool_name>`. Documentation and a journalist report will be produced at the end of each milestone.
+
+## Scope Reality Check
+The Bitwig Controller API is large (hundreds of interfaces). Full coverage requires multiple sprints, new controller modules, and extensive testing. This plan defines the **phased roadmap** and the **tool contract** for each phase.
 
 ## User Review Required
 > [!IMPORTANT]
-> **Browser Integration Strategy**: We will implement a `BrowserModule` that wraps Bitwig's `host.createPopupBrowser()`. The LLM will interact with it blindly (List results -> Select -> Commit).
-> **Latency**: Browsing is asynchronous. The LLM must wait for the browser to open and results to load. We might need a "browser_wait_for_ready" tool or rely on events.
+> **Per-tool commits** are required after each tool is implemented. Commit message format: `feat(tool): <tool_name>`.
+>
+> **Phased rollout**: We will deliver in milestones, with a journalist report after each milestone (e.g., `reports/dev-report-03.md`).
+>
+> **Breaking changes**: Tool names follow the existing MCP naming style (`transport_get_*`, `track_*`, etc.). If you prefer a different naming convention, confirm now.
 
-## Proposed Changes
+## Phase Plan (Milestones)
 
-### Controller Script (Backend)
+### Phase 0 — Parity + Stability (Short)
+**Goal:** Align MCP tools with existing controller capabilities and fix mismatches.
+**Tools / Fixes:**
+- `transport_get_recording_status` → `transport.getIsRecording`
+- `transport_get_time_signature` → `transport.time_signature`
+- `browser_set_filter` → `browser.set_filter`
+- `device_select_first` / `device_select_last`
+- Fix send mapping for `mixer_get_send_level` / `mixer_set_send_level`
+- Ensure `BrowserModule` is loaded in `BitwigPOC.control.js`
 
-#### [NEW] [modules/Browser.js](file:///home/taenia/Code/bitwig-mcp-poc/bitwig-controller/BitwigPOC/modules/Browser.js)
-implement `BrowserModule`:
-- `browser.exists()`: Observe if browser is open.
-- `browser.list_results()`: Return first N items in current result list.
-- `browser.select_index(i)`: Select specific item in result list.
-- `browser.commit()`: Confirm selection (Insert).
-- `browser.cancel()`: Close browser.
-- `browser.set_filter(text)`: Set search query (if possible via API).
+### Phase 1 — Roadmap Must‑Have Core
+**Transport & Timeline**
+- Tap tempo, punch in/out, arrange/launcher overdub
+- Play-start position, jump, nudges
+**Tracks & Mixer**
+- Track create (audio/instrument/effect), list, get info
+- Track arm/monitor mode, input/output routing
+- Track visibility and scrolling
+**Selection & State Query**
+- Cursor track/device/clip state query tools
+- Project state summary (expanded)
+**Observability**
+- Event stream: transport state, track state, clip state
 
-#### [MODIFY] [modules/Transport.js](file:///home/taenia/Code/bitwig-mcp-poc/bitwig-controller/BitwigPOC/modules/Transport.js)
-- Add `transport.toggle_metronome`
-- Add `transport.time_signature` (get/set)
+### Phase 2 — Clip Launcher + Clip Properties
+**Clip Launcher**
+- Clip properties: name, length, loop start/end, playback position
+- Clip stop all, scene navigation helpers
+**Clip Content**
+- Step editing enhancements (clear row/col, move notes)
+- Note expression controls (basic)
 
-#### [MODIFY] [BitwigPOC.control.js](file:///home/taenia/Code/bitwig-mcp-poc/bitwig-controller/BitwigPOC/BitwigPOC.control.js)
-- Register `BrowserModule`.
+### Phase 3 — Device Chain + Browser Assistant
+**Device Chain**
+- Full device info, insert/replace, bypass, window/minimize
+- Parameter get/set, modulation depth
+**Browser**
+- Filter columns, results list + select + audition
+- Preset/sample browser flows
 
-### MCP Server (Node.js)
+### Phase 4 — Arrangement & Timeline
+- Cue markers: create/delete/list
+- Arranger view controls (zoom/scroll)
+- Automation lanes (basic)
 
-#### [MODIFY] [index.js](file:///home/taenia/Code/bitwig-mcp-poc/index.js)
-- Register new tools:
-    - `browser_get_status` (is open?)
-    - `browser_list_results`
-    - `browser_select_result`
-    - `browser_commit`
-    - `browser_cancel`
-    - `transport_toggle_metronome`
-    - `transport_set_time_signature`
+### Phase 5 — Actions & Commands
+- `application_actions_list`
+- `application_action_invoke`
+- Action categories listing
 
-## Verification Plan
+### Phase 6 — Preferences & Settings
+- Preferences access
+- Document state helpers
 
-### Automated/Manual Verification
-1.  **Transport**:
-    - Call `transport_toggle_metronome` -> Verify click in Bitwig.
-    - Call `transport_set_time_signature` -> Verify transport bar in Bitwig.
-2.  **Browser Flow**:
-    - Select a track.
-    - Call `device_browse_replace` (opens browser).
-    - Call `browser_get_status` (should be true).
-    - Call `browser_list_results` (should return list of presets/devices).
-    - Call `browser_select_result` (highlight changes).
-    - Call `browser_commit` (browser closes, device loads).
+### Phase 7 — MIDI / Hardware / OSC (Optional)
+- MIDI input/output routing
+- OSC server basics
+- Hardware surface bindings (lights/displays) for feedback
+
+## Files to Modify (Expected)
+1. `index.js` (tool definitions + routing)
+2. `bitwig-controller/BitwigPOC/BitwigPOC.control.js`
+3. `bitwig-controller/BitwigPOC/modules/*.js` (new modules per phase)
+4. `tests/` (new tests per phase)
+5. `README.md` and `docs/` (updated tool catalog + usage)
+
+## Implementation Rules
+- **Commit after each tool implementation** using: `feat(tool): <tool_name>`.
+- If a tool requires multiple files (controller + MCP + tests), implement fully, then commit.
+- No destructive changes without explicit approval in plan.
+
+## Verification Plan (Tester)
+- Run existing test suite + new phase tests.
+- Manual Bitwig verification for UI and browser actions.
+- Update `walkthrough.md` after each phase.
+
+## Handover & Comms
+After each phase:
+1. Tester updates `walkthrough.md`
+2. Tech Writer updates `README.md`
+3. Journalist publishes milestone report in `reports/`

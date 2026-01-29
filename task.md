@@ -1,21 +1,22 @@
-# Current Task: TypeScript Refactoring
-# Previous Task: Finish MCP for LLM Support (Completed)
+# Current Task: Expanded Bitwig API Coverage (Multi-Sprint Plan)
 
 **Status**: Planning
 **Owner**: Orchestrator
 
 ## Context
-Refactor the Node.js MCP server (`index.js`) from JavaScript to TypeScript to improve type safety, maintainability, and developer experience. The Bitwig controller scripts must remain in JavaScript (Bitwig API constraint).
+User requested an expanded scope toward full Bitwig API coverage based on `bitwig-api-docs/`. This requires a multi-sprint plan that prioritizes API categories, defines tool contracts, and sequences implementation/testing/documentation. A journalist-style report is requested after milestones.
 
 ## Objectives
-1.  **Type Safety**: Add proper TypeScript types for all MCP tools, Bitwig API responses, and internal data structures.
-2.  **Code Organization**: Split the monolithic `index.js` into modular files (types, tools, handlers).
-3.  **Maintainability**: Use interfaces/types to document the contract between components.
-4.  **Build Process**: Set up TypeScript compilation with appropriate `tsconfig.json`.
+1. **Full-Scope Planning**: Map Bitwig API categories to MCP tools and decide implementation phases.
+2. **Gap Analysis**: Identify all missing tools/endpoints/actions vs. docs.
+3. **Implementation**: Add missing tools/endpoints per phase.
+4. **Verification**: Run/extend tests and record results.
+5. **Documentation**: Update README with usage + tool list.
+6. **Comms**: Prepare journalist-style reports after each major milestone.
 
-## Plan
-- [x] **Phase 1: Planning** (Planner) -> Design TypeScript architecture, define type hierarchy, and migration strategy.
-- [ ] **Phase 2: Implementation** (Implementer) -> Create TypeScript files, migrate code, set up build process.
-- [ ] **Phase 3: Verification** (Tester) -> Verify all tools work after refactoring, no functionality broken.
-
-
+## Plan (Workflow)
+- [ ] **Phase 1: Planning** (Planner) -> Audit docs, define full-scope phased plan, update `implementation_plan.md` with steps + verification.
+- [ ] **Phase 2: Implementation** (Implementer) -> Add missing tools/endpoints.
+- [ ] **Phase 3: Verification** (Tester) -> Run relevant tests, update `walkthrough.md`.
+- [ ] **Phase 4: Documentation** (Tech Writer) -> Update `README.md` and any docs.
+- [ ] **Phase 5: Report** (Journalist) -> Write milestone report in `reports/`.
