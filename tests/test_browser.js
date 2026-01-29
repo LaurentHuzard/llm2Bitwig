@@ -17,7 +17,7 @@ async function run() {
     // 2. Set Browser Filter
     console.log("Testing browser_set_filter...");
     const res = await client.callTool("browser_set_filter", { text: "piano" });
-    assert.strictEqual(res, "OK");
+    assert.strictEqual(res, "UNSUPPORTED");
 
     console.log("=== Browser Tools Tests Passed ===");
   } catch (error) {

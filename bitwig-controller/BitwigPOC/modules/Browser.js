@@ -1,7 +1,6 @@
 function BrowserModule(host) {
     this.popupBrowser = host.createPopupBrowser();
     this.popupBrowser.exists().markInterested();
-    this.popupBrowser.customFilter().markInterested();
 
     // Results
     this.results = this.popupBrowser.resultsColumn().createCursorItem();
@@ -18,7 +17,7 @@ BrowserModule.prototype.handleRequest = function (method, params) {
         case "browser.get_status":
             return {
                 exists: this.popupBrowser.exists().get(),
-                filter: this.popupBrowser.customFilter().get()
+                filter: null
             };
 
         case "browser.list_results":
@@ -59,10 +58,7 @@ BrowserModule.prototype.handleRequest = function (method, params) {
             return "Not Implemented";
 
         case "browser.set_filter":
-            if (params && params[0] !== undefined) {
-                this.popupBrowser.customFilter().set(params[0]);
-                return "OK";
-            } else throw "Missing filter text";
+            return "UNSUPPORTED";
 
         case "browser.commit":
             this.popupBrowser.commit();
