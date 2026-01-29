@@ -12,6 +12,7 @@ load("modules/Cursor.js");
 load("modules/Application.js");
 load("modules/Device.js");
 load("modules/Clip.js");
+load("modules/Browser.js");
 
 var modules = [];
 var isConnected = false;

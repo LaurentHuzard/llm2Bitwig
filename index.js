@@ -902,6 +902,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: { type: "object", properties: {} },
       },
       {
+        name: "browser_set_filter",
+        description: "Set the browser filter/search text",
+        inputSchema: {
+          type: "object",
+          properties: {
+            text: { type: "string", description: "Filter text to apply" },
+          },
+          required: ["text"],
+        },
+      },
+      {
         name: "browser_list_results",
         description: "List current search results in the browser (up to 100 items)",
         inputSchema: { type: "object", properties: {} },
@@ -1217,6 +1228,9 @@ async function executeTool(name, args) {
     // --- Browser Tools ---
     case "browser_get_status":
       result = await callBitwig("browser.get_status");
+      break;
+    case "browser_set_filter":
+      result = await callBitwig("browser.set_filter", [args.text]);
       break;
     case "browser_list_results":
       result = await callBitwig("browser.list_results");
