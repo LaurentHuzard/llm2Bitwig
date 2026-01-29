@@ -230,6 +230,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: { type: "object", properties: {} },
       },
       {
+        name: "transport_get_recording_status",
+        description: "Check if transport is currently recording",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
         name: "transport_toggle_loop",
         description: "Toggle loop on/off",
         inputSchema: { type: "object", properties: {} },
@@ -970,6 +975,9 @@ async function executeTool(name, args) {
       break;
     case "transport_playing_status":
       result = await callBitwig("transport.getIsPlaying");
+      break;
+    case "transport_get_recording_status":
+      result = await callBitwig("transport.getIsRecording");
       break;
     case "transport_toggle_loop":
       result = await callBitwig("transport.toggleLoop");
