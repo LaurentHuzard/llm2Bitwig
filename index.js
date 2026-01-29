@@ -1222,7 +1222,7 @@ async function executeTool(name, args) {
       result = await callBitwig("mixer.master.set_volume", [args.value]);
       break;
     case "mixer_get_send_level":
-      result = await callBitwig("mixer.send.get_level", [args.trackIndex, args.sendIndex]);
+      result = await callBitwig("mixer.track.get_send", [args.trackIndex, args.sendIndex]);
       break;
     case "mixer_set_send_level":
       result = await callBitwig("mixer.send.set_level", [args.trackIndex, args.sendIndex, args.value]);
