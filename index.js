@@ -235,6 +235,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: { type: "object", properties: {} },
       },
       {
+        name: "transport_get_time_signature",
+        description: "Get the transport time signature",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
         name: "transport_toggle_loop",
         description: "Toggle loop on/off",
         inputSchema: { type: "object", properties: {} },
@@ -978,6 +983,9 @@ async function executeTool(name, args) {
       break;
     case "transport_get_recording_status":
       result = await callBitwig("transport.getIsRecording");
+      break;
+    case "transport_get_time_signature":
+      result = await callBitwig("transport.time_signature");
       break;
     case "transport_toggle_loop":
       result = await callBitwig("transport.toggleLoop");
