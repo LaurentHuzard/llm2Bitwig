@@ -1,15 +1,11 @@
 function TrackBankModule(host) {
-    // Master Track
-    this.masterTrack = host.createMasterTrack(0);
-    this.masterTrack.volume().markInterested();
-    this.masterTrack.pan().markInterested();
-
     // Create Main Track Bank (8 tracks, 2 sends, 8 scenes)
     this.trackBank = host.createMainTrackBank(8, 2, 8);
 
-    // Mark interested for Track Bank
-    for (var i = 0; i < 8; i++) {
-        var track = this.trackBank.getItemAt(i);
+    var self = this;
+
+    function initTrack(i) {
+        var track = self.trackBank.getItemAt(i);
         track.volume().markInterested();
         track.pan().markInterested();
         track.mute().markInterested();
@@ -17,6 +13,29 @@ function TrackBankModule(host) {
         track.arm().markInterested();
         track.name().markInterested();
         track.color().markInterested();
+
+        // Track Observers
+        track.volume().addValueObserver(101, function (val) {
+            sendEvent("track.update", { index: i, volume: val });
+        });
+        track.pan().addValueObserver(101, function (val) {
+            sendEvent("track.update", { index: i, pan: val });
+        });
+        track.mute().addValueObserver(function (val) {
+            sendEvent("track.update", { index: i, mute: val });
+        });
+        track.solo().addValueObserver(function (val) {
+            sendEvent("track.update", { index: i, solo: val });
+        });
+        track.arm().addValueObserver(function (val) {
+            sendEvent("track.update", { index: i, arm: val });
+        });
+        track.name().addValueObserver(function (val) {
+            sendEvent("track.update", { index: i, name: val });
+        });
+        track.color().addValueObserver(function (r, g, b) {
+            sendEvent("track.update", { index: i, color: { red: r, green: g, blue: b } });
+        });
 
         // Sends
         var sendBank = track.sendBank();
@@ -26,23 +45,41 @@ function TrackBankModule(host) {
 
         // Clip Launcher Slots
         var clipLauncher = track.clipLauncherSlotBank();
-        for (var j = 0; j < 8; j++) {
+        function initSlot(j) {
             var slot = clipLauncher.getItemAt(j);
             slot.hasContent().markInterested();
             slot.isPlaying().markInterested();
             slot.isRecording().markInterested();
             slot.isPlaybackQueued().markInterested();
+            slot.color().markInterested();
+
+            slot.hasContent().addValueObserver(function (val) {
+                sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, hasContent: val });
+            });
+            slot.isPlaying().addValueObserver(function (val) {
+                sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, isPlaying: val });
+            });
+            slot.isRecording().addValueObserver(function (val) {
+                sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, isRecording: val });
+            });
+            slot.isPlaybackQueued().addValueObserver(function (val) {
+                sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, isPlaybackQueued: val });
+            });
+            slot.color().addValueObserver(function (r, g, b) {
+                sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, color: { r: r, g: g, b: b } });
+            });
+        }
+
+        for (var j = 0; j < 8; j++) {
+            initSlot(j);
         }
     }
 
-    // Create Scene Bank (8 scenes)
-    this.sceneBank = host.createSceneBank(8);
     for (var i = 0; i < 8; i++) {
-        var scene = this.sceneBank.getScene(i);
-        scene.name().markInterested();
-        scene.sceneIndex().markInterested();
+        initTrack(i);
     }
 }
+
 
 TrackBankModule.prototype.handleRequest = function (method, params) {
     var result;
@@ -142,6 +179,18 @@ TrackBankModule.prototype.handleRequest = function (method, params) {
                 return "OK";
             } else throw "Missing parameters";
 
+        case "clip.duplicate":
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().duplicateClip(params[1]);
+                return "OK";
+            } else throw "Missing parameters (trackIndex, slotIndex)";
+
+        case "clip.select_slot":
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().select(params[1]);
+                return "OK";
+            } else throw "Missing parameters (trackIndex, slotIndex)";
+
         case "clip.create":
             if (params && params[0] !== undefined && params[1] !== undefined && params[2] !== undefined) {
                 // track index, slot index, length in beats
@@ -149,38 +198,75 @@ TrackBankModule.prototype.handleRequest = function (method, params) {
                 return "OK";
             } else throw "Missing parameters (trackIndex, slotIndex, length)";
 
-        // --- Scene Control ---
-        case "scene.launch":
-            if (params && params[0] !== undefined) {
-                this.sceneBank.getScene(params[0]).launch();
+        case "clip.delete":
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().deleteClip(params[1]);
                 return "OK";
-            } else throw "Missing parameters";
+            } else throw "Missing parameters (trackIndex, slotIndex)";
 
-        case "scene.list":
-            var scenes = [];
-            for (var i = 0; i < 8; i++) {
-                var s = this.sceneBank.getScene(i);
-                scenes.push({
-                    index: i,
-                    name: s.name().get()
-                });
+        case "clip.browse_insert":
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().getItemAt(params[1]).browseToInsertClip();
+                return "OK";
+            } else throw "Missing parameters (trackIndex, slotIndex)";
+
+        case "clip.get_status":
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                var trackIdx = params[0];
+                var sceneIdx = params[1];
+                var clipSlot = this.trackBank.getItemAt(trackIdx).clipLauncherSlotBank().getItemAt(sceneIdx);
+                return {
+                    hasContent: clipSlot.hasContent().get(),
+                    isPlaying: clipSlot.isPlaying().get(),
+                    isRecording: clipSlot.isRecording().get(),
+                    isPlaybackQueued: clipSlot.isPlaybackQueued().get()
+                };
+            } else throw "Missing parameters (trackIndex, sceneIndex)";
+
+        case "clip.get_grid":
+            var grid = [];
+            for (var t = 0; t < 8; t++) {
+                var trackSlots = [];
+                var clipLauncher = this.trackBank.getItemAt(t).clipLauncherSlotBank();
+                for (var s = 0; s < 8; s++) {
+                    var slot = clipLauncher.getItemAt(s);
+                    trackSlots.push({
+                        trackIndex: t,
+                        sceneIndex: s,
+                        hasContent: slot.hasContent().get(),
+                        isPlaying: slot.isPlaying().get(),
+                        isRecording: slot.isRecording().get(),
+                        isPlaybackQueued: slot.isPlaybackQueued().get()
+                    });
+                }
+                grid.push(trackSlots);
             }
-            return scenes;
+            return grid;
 
-        case "scene.create":
-            this.sceneBank.createScene();
-            return "OK";
-
-        // --- Mixer Tools ---
-        case "mixer.master.get_volume":
-            return this.masterTrack.volume().get();
-
-        case "mixer.master.set_volume":
-            if (params && params[0] !== undefined) {
-                this.masterTrack.volume().set(params[0]);
+        case "clip.set_color":
+            if (params && params[0] !== undefined && params[1] !== undefined && params[2] !== undefined && params[3] !== undefined && params[4] !== undefined) {
+                var trackIdx = params[0];
+                var sceneIdx = params[1];
+                var r = params[2];
+                var g = params[3];
+                var b = params[4];
+                this.trackBank.getItemAt(trackIdx).clipLauncherSlotBank().getItemAt(sceneIdx).color().set(r, g, b);
                 return "OK";
-            } else throw "Missing volume parameter";
+            } else throw "Missing parameters (trackIndex, sceneIndex, r, g, b)";
 
+        case "clip.get_color":
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                var trackIdx = params[0];
+                var sceneIdx = params[1];
+                var clipColor = this.trackBank.getItemAt(trackIdx).clipLauncherSlotBank().getItemAt(sceneIdx).color();
+                return {
+                    r: clipColor.red(),
+                    g: clipColor.green(),
+                    b: clipColor.blue()
+                };
+            } else throw "Missing parameters (trackIndex, sceneIndex)";
+
+        // --- Mixer Tools (Per Track) ---
         case "mixer.track.get_send":
             if (params && params[0] !== undefined && params[1] !== undefined) {
                 return this.trackBank.getItemAt(params[0]).sendBank().getItemAt(params[1]).get();

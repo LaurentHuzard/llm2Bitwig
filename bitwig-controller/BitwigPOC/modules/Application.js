@@ -11,6 +11,10 @@ ApplicationModule.prototype.handleRequest = function (method, params) {
         case "application.createAudioTrack":
             this.application.createAudioTrack(-1);
             return "OK";
+
+        case "application.createEffectTrack":
+            this.application.createEffectTrack(-1);
+            return "OK";
     }
     return undefined;
 };

@@ -8,7 +8,20 @@ function TransportModule(host) {
     this.transport.isArrangerLoopEnabled().markInterested();
     this.transport.getInPosition().markInterested();
     this.transport.getOutPosition().markInterested();
+    this.transport.isMetronomeEnabled().markInterested();
+    this.transport.timeSignature().numerator().markInterested();
+    this.transport.timeSignature().denominator().markInterested();
+
+    // Add Observers for event-driven updates
+    this.transport.isPlaying().addValueObserver(function (isPlaying) {
+        sendEvent("transport.state", { isPlaying: isPlaying });
+    });
+
+    this.transport.tempo().value().addRawValueObserver(function (tempo) {
+        sendEvent("transport.state", { tempo: tempo });
+    });
 }
+
 
 TransportModule.prototype.handleRequest = function (method, params) {
     switch (method) {
@@ -69,6 +82,18 @@ TransportModule.prototype.handleRequest = function (method, params) {
                 start: this.transport.getInPosition().get(),
                 end: this.transport.getOutPosition().get()
             };
+        case "transport.toggle_metronome":
+            this.transport.isMetronomeEnabled().toggle();
+            return "OK";
+        case "transport.time_signature": // get/set
+            if (params && params[0] !== undefined && params[1] !== undefined) {
+                this.transport.timeSignature().set(params[0], params[1]);
+                return "OK";
+            } else {
+                // return formatted string
+                return this.transport.timeSignature().numerator().get() + "/" + this.transport.timeSignature().denominator().get();
+            }
     }
     return undefined; // Method not handled
 };
+

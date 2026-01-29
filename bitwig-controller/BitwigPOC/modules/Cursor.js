@@ -22,7 +22,48 @@ function CursorModule(host) {
         param.name().markInterested();
         param.value().markInterested();
         param.setIndication(true);
+
+        // Param Observers
+        (function (index, p) {
+            p.name().addValueObserver(function (name) {
+                sendEvent("device.remote_control.update", { index: index, name: name });
+            });
+            p.value().addValueObserver(function (value) {
+                sendEvent("device.remote_control.update", { index: index, value: value });
+            });
+        })(i, param);
     }
+
+    // --- Cursor Track Observers ---
+    this.cursorTrack.name().addValueObserver(function (val) {
+        sendEvent("track.selected.update", { name: val });
+    });
+    this.cursorTrack.volume().addValueObserver(function (val) {
+        sendEvent("track.selected.update", { volume: val });
+    });
+    this.cursorTrack.pan().addValueObserver(function (val) {
+        sendEvent("track.selected.update", { pan: val });
+    });
+    this.cursorTrack.mute().addValueObserver(function (val) {
+        sendEvent("track.selected.update", { mute: val });
+    });
+    this.cursorTrack.solo().addValueObserver(function (val) {
+        sendEvent("track.selected.update", { solo: val });
+    });
+    this.cursorTrack.arm().addValueObserver(function (val) {
+        sendEvent("track.selected.update", { arm: val });
+    });
+
+    // --- Cursor Device Observers ---
+    this.cursorDevice.name().addValueObserver(function (val) {
+        sendEvent("device.selected.update", { name: val });
+    });
+    this.cursorDevice.isWindowOpen().addValueObserver(function (val) {
+        sendEvent("device.selected.update", { isWindowOpen: val });
+    });
+    this.cursorDevice.isExpanded().addValueObserver(function (val) {
+        sendEvent("device.selected.update", { isExpanded: val });
+    });
 }
 
 CursorModule.prototype.handleRequest = function (method, params) {
@@ -108,6 +149,36 @@ CursorModule.prototype.handleRequest = function (method, params) {
 
         case "device.page_previous":
             this.remoteControlsBank.selectPreviousPage(true);
+            return "OK";
+
+        // --- Device Navigation ---
+        case "device.select_next":
+            this.cursorDevice.selectNext();
+            return "OK";
+
+        case "device.select_previous":
+            this.cursorDevice.selectPrevious();
+            return "OK";
+
+        case "device.select_first":
+            this.cursorDevice.selectFirst();
+            return "OK";
+
+        case "device.select_last":
+            this.cursorDevice.selectLast();
+            return "OK";
+
+        // --- Device Browsing ---
+        case "device.browse_insert_before":
+            this.cursorDevice.browseToInsertBeforeDevice();
+            return "OK";
+
+        case "device.browse_insert_after":
+            this.cursorDevice.browseToInsertAfterDevice();
+            return "OK";
+
+        case "device.browse_replace":
+            this.cursorDevice.browseToReplaceDevice();
             return "OK";
     }
     return undefined;
