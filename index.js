@@ -662,6 +662,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: { type: "object", properties: {} },
       },
       {
+        name: "device_select_last",
+        description: "Select last device in chain",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
         name: "device_browse_insert_before",
         description: "Open browser to insert device before selected",
         inputSchema: { type: "object", properties: {} },
@@ -1178,6 +1183,9 @@ async function executeTool(name, args) {
       break;
     case "device_select_first":
       result = await callBitwig("device.select_first");
+      break;
+    case "device_select_last":
+      result = await callBitwig("device.select_last");
       break;
     case "device_browse_insert_before":
       result = await callBitwig("device.browse_insert_before");

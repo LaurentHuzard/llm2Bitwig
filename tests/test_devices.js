@@ -47,6 +47,10 @@ async function run() {
         console.log("Testing device_select_first...");
         await client.callTool("device_select_first");
 
+        // 7. Select Last Device
+        console.log("Testing device_select_last...");
+        await client.callTool("device_select_last");
+
         console.log("=== Device Tools Tests Passed ===");
 
     } catch (error) {
