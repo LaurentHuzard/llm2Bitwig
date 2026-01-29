@@ -43,6 +43,10 @@ async function run() {
         console.log("Testing device_page_next...");
         await client.callTool("device_page_next");
 
+        // 6. Select First Device
+        console.log("Testing device_select_first...");
+        await client.callTool("device_select_first");
+
         console.log("=== Device Tools Tests Passed ===");
 
     } catch (error) {
