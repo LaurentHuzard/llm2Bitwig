@@ -17,6 +17,15 @@ async function run() {
     });
     assert.strictEqual(typeof level, "number", "Send level should be a number");
 
+    // 2. Set Send Level
+    console.log("Testing mixer_set_send_level...");
+    const setRes = await client.callTool("mixer_set_send_level", {
+      trackIndex: 0,
+      sendIndex: 0,
+      value: 0.25,
+    });
+    assert.strictEqual(setRes, "OK");
+
     console.log("=== Mixer Tools Tests Passed ===");
   } catch (error) {
     console.error("Test Failed:", error);

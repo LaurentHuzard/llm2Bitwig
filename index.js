@@ -873,6 +873,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: "Set send level for a track",
         inputSchema: {
           type: "object",
+          properties: {
+            trackIndex: { type: "number", description: "Track index 0-7" },
+            sendIndex: { type: "number", description: "Send index 0-1" },
+            value: { type: "number", description: "Send level 0.0 to 1.0" },
+          },
           required: ["trackIndex", "sendIndex", "value"],
         },
       },
@@ -1225,7 +1230,7 @@ async function executeTool(name, args) {
       result = await callBitwig("mixer.track.get_send", [args.trackIndex, args.sendIndex]);
       break;
     case "mixer_set_send_level":
-      result = await callBitwig("mixer.send.set_level", [args.trackIndex, args.sendIndex, args.value]);
+      result = await callBitwig("mixer.track.set_send", [args.trackIndex, args.sendIndex, args.value]);
       break;
     case "mixer_return_list":
       result = await callBitwig("mixer.return.list");
