@@ -177,6 +177,38 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: "Check if transport is currently playing",
         inputSchema: { type: "object", properties: {} },
       },
+      {
+        name: "transport_toggle_loop",
+        description: "Toggle loop on/off",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "transport_set_loop_start",
+        description: "Set loop start position in beats",
+        inputSchema: {
+          type: "object",
+          properties: {
+            beats: { type: "number", description: "Loop start position in beats" },
+          },
+          required: ["beats"],
+        },
+      },
+      {
+        name: "transport_set_loop_end",
+        description: "Set loop end position in beats",
+        inputSchema: {
+          type: "object",
+          properties: {
+            beats: { type: "number", description: "Loop end position in beats" },
+          },
+          required: ["beats"],
+        },
+      },
+      {
+        name: "transport_get_loop_status",
+        description: "Get current loop status (enabled, start, end)",
+        inputSchema: { type: "object", properties: {} },
+      },
       // --- Track Bank Tools ---
       {
         name: "track_bank_get_status",
@@ -240,6 +272,54 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             index: { type: "number", description: "Track index 0-7" },
           },
           required: ["index"],
+        },
+      },
+      {
+        name: "track_delete",
+        description: "Delete a track from the bank (0-7)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number", description: "Track index 0-7" },
+          },
+          required: ["index"],
+        },
+      },
+      {
+        name: "track_rename",
+        description: "Rename a track",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number", description: "Track index 0-7" },
+            name: { type: "string", description: "New name" },
+          },
+          required: ["index", "name"],
+        },
+      },
+      {
+        name: "track_duplicate",
+        description: "Duplicate a track",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number", description: "Track index 0-7" },
+          },
+          required: ["index"],
+        },
+      },
+      {
+        name: "track_set_color",
+        description: "Set track color",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number", description: "Track index 0-7" },
+            red: { type: "number", description: "Red (0.0-1.0)" },
+            green: { type: "number", description: "Green (0.0-1.0)" },
+            blue: { type: "number", description: "Blue (0.0-1.0)" },
+          },
+          required: ["index", "red", "green", "blue"],
         },
       },
       // --- Clip & Scene Tools ---
@@ -427,6 +507,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: "Select previous remote controls page",
         inputSchema: { type: "object", properties: {} },
       },
+      // --- Mixer Tools ---
+      {
+        name: "mixer_get_master_volume",
+        description: "Get the current master volume (0.0 to 1.0)",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "mixer_set_master_volume",
+        description: "Set the master volume",
+        inputSchema: {
+          type: "object",
+          properties: {
+            value: { type: "number", description: "Volume value 0.0 to 1.0" },
+          },
+          required: ["value"],
+        },
+      },
+      {
+        name: "mixer_get_send_level",
+        description: "Get send level for a track",
+        inputSchema: {
+          type: "object",
+          properties: {
+            trackIndex: { type: "number", description: "Track index 0-7" },
+            sendIndex: { type: "number", description: "Send index 0-1" },
+          },
+          required: ["trackIndex", "sendIndex"],
+        },
+      },
+      {
+        name: "mixer_set_send_level",
+        description: "Set send level for a track",
+        inputSchema: {
+          type: "object",
+          properties: {
+            trackIndex: { type: "number", description: "Track index 0-7" },
+            sendIndex: { type: "number", description: "Send index 0-1" },
+            value: { type: "number", description: "Send level 0.0 to 1.0" },
+          },
+          required: ["trackIndex", "sendIndex", "value"],
+        },
+      },
     ],
   };
 });
@@ -464,6 +586,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "transport_playing_status":
         result = await callBitwig("transport.getIsPlaying");
         break;
+      case "transport_toggle_loop":
+        result = await callBitwig("transport.toggleLoop");
+        break;
+      case "transport_set_loop_start":
+        result = await callBitwig("transport.setLoopStart", [args.beats]);
+        break;
+      case "transport_set_loop_end":
+        result = await callBitwig("transport.setLoopEnd", [args.beats]);
+        break;
+      case "transport_get_loop_status":
+        result = await callBitwig("transport.getLoopStatus");
+        break;
 
       // --- Track Bank Tools ---
       case "track_bank_get_status":
@@ -483,6 +617,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case "track_bank_select":
         result = await callBitwig("track.bank.select", [args.index]);
+        break;
+      case "track_delete":
+        result = await callBitwig("track.delete", [args.index]);
+        break;
+      case "track_rename":
+        result = await callBitwig("track.rename", [args.index, args.name]);
+        break;
+      case "track_duplicate":
+        result = await callBitwig("track.duplicate", [args.index]);
+        break;
+      case "track_set_color":
+        result = await callBitwig("track.set_color", [args.index, args.red, args.green, args.blue]);
         break;
 
       // --- Clip & Scene Tools ---
@@ -557,6 +703,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case "device_page_previous":
         result = await callBitwig("device.page_previous");
+        break;
+
+      // --- Mixer Tools ---
+      case "mixer_get_master_volume":
+        result = await callBitwig("mixer.master.get_volume");
+        break;
+      case "mixer_set_master_volume":
+        result = await callBitwig("mixer.master.set_volume", [args.value]);
+        break;
+      case "mixer_get_send_level":
+        result = await callBitwig("mixer.track.get_send", [args.trackIndex, args.sendIndex]);
+        break;
+      case "mixer_set_send_level":
+        result = await callBitwig("mixer.track.set_send", [args.trackIndex, args.sendIndex, args.value]);
         break;
 
       default:

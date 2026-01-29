@@ -29,7 +29,7 @@ graph LR
 ```
 
 ## ✨ Features / Tools
-## ✨ Features / Tools
+
 The following MCP tools are currently implemented:
 
 ### Transport
@@ -39,11 +39,19 @@ The following MCP tools are currently implemented:
 - `transport_record`: Toggle recording
 - `transport_get_tempo` / `transport_set_tempo`: Manage BPM
 - `transport_get_position` / `transport_set_position`: Manage playhead position
+- `transport_playing_status`: Check if transport is playing
+- `transport_toggle_loop`: Toggle loop on/off
+- `transport_set_loop_start` / `transport_set_loop_end`: Set loop region
+- `transport_get_loop_status`: Query loop state (enabled, start, end)
 
 ### Track & Mixer
 - `track_bank_get_status`: Get info (name/vol/pan/mute/solo) for 8 tracks
 - `track_bank_set_volume`, `_pan`, `_mute`, `_solo`: Control tracks by bank index
 - `track_bank_select`: Select a track in the bank
+- `track_delete`: Delete a track
+- `track_rename`: Rename a track
+- `track_duplicate`: Duplicate a track
+- `track_set_color`: Set track color (RGB)
 - `track_selected_get_status`: Get info for the currently selected track
 - `track_selected_set_volume`, `_pan`, `_mute`, `_solo`, `_arm`: Control the selected track
 
@@ -99,3 +107,15 @@ Once connected, you can ask your AI Agent:
 > "Add a new instrument track in Bitwig."
 > "Start playback."
 > "Stop the music."
+
+## 🧪 LLM Test Environment
+
+For testing the MCP server with an actual LLM agent flow (simulated via CLI), use the dedicated test environment.
+
+### Quick Start
+```bash
+./test-env/run-llm-test.sh
+```
+
+See the [Test Environment Documentation](test-env/README.md) for more details and example prompts.
+
