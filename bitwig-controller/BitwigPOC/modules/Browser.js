@@ -34,31 +34,23 @@ BrowserModule.prototype.handleRequest = function (method, params) {
 
         case "browser.select_result":
             if (params && params[0] !== undefined) {
-                // To select, we might need to scroll? 
-                // Simple version: just select from the bank if visible.
-                // The item bank typically scrolls with the cursor, but here we are selecting BY index in the bank.
-                // Let's assume we just want to select that item in the list.
-                // Bitwig API for ItemBank allows access not necessarily selection directly unless we map it.
-                // Actually, createCursorItem (this.results) follows selection.
-                // We can't easily "select index 5" without iterating or depending on bank window.
-                // Workaround: We can't directly "select index X" easily on a generic ItemBank without a scroll/select mechanism.
-                // Valid Approach: CursorBrowserResultItem?
-                // Simpler: Just use browser.commit() on currently selected?
-                // Wait, LLM needs to explicitly select "Piano" from the list.
-                // Let's use the scroll mechanism if needed, or simply assume the bank window covers it.
-                // Actually `resultBank.getItemAt(i)` is a BrowserResultItem. Does it have `select()`? Not always standard.
-                // Let's try `selectInEditor()` or similar if available, otherwise just use `browseToInsert...` which initiates it.
-                // For PopupBrowser, we select and then commit.
-                // Limitation: Bitwig API for BrowserResultItem might not support direct selection easily from a bank in v1.
-                // Alternative: Use cursor navigation `selectNext()` / `selectPrevious()` loop? Efficient enough for small lists.
-                // Let's implement a simple "select_index" that tries to sync the cursor.
-                // Actually, let's just use `popupBrowser.selectFirst()` and `selectNext()` loop.
-                return "Selection by index requires iterating cursor - implemented in v2. For now, try arrow keys tool?";
+                var index = params[0];
+                var item = this.resultBank.getItemAt(index);
+                if (item) {
+                    item.isSelected().set(true);
+                    return "OK";
+                }
+                return "Item not found at index " + index;
             }
-            return "Not Implemented";
+            return "Missing index parameter";
 
         case "browser.set_filter":
-            return "UNSUPPORTED";
+            if (params && params[0] !== undefined) {
+                // Try smartCollectionColumn.getWildcardFilter().set()
+                this.popupBrowser.smartCollectionColumn().getWildcardFilter().set(params[0]);
+                return "OK";
+            }
+            return "Missing filter text parameter";
 
         case "browser.commit":
             this.popupBrowser.commit();

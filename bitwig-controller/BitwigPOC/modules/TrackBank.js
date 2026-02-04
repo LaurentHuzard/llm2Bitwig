@@ -1,6 +1,6 @@
 function TrackBankModule(host) {
-    // Create Main Track Bank (8 tracks, 2 sends, 8 scenes)
     this.trackBank = host.createMainTrackBank(8, 2, 8);
+    this.trackBank.followCursorTrack(host.createCursorTrack(0, 0));
 
     var self = this;
 
@@ -13,6 +13,10 @@ function TrackBankModule(host) {
         track.arm().markInterested();
         track.name().markInterested();
         track.color().markInterested();
+        track.exists().markInterested();
+        track.trackType().markInterested();
+        track.position().markInterested();
+        track.isGroup().markInterested();
 
         // Track Observers
         track.volume().addValueObserver(101, function (val) {
@@ -52,6 +56,7 @@ function TrackBankModule(host) {
             slot.isRecording().markInterested();
             slot.isPlaybackQueued().markInterested();
             slot.color().markInterested();
+            slot.name().markInterested();
 
             slot.hasContent().addValueObserver(function (val) {
                 sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, hasContent: val });
@@ -67,6 +72,9 @@ function TrackBankModule(host) {
             });
             slot.color().addValueObserver(function (r, g, b) {
                 sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, color: { r: r, g: g, b: b } });
+            });
+            slot.name().addValueObserver(function (val) {
+                sendEvent("clip_launcher.slot_update", { trackIndex: i, sceneIndex: j, name: val });
             });
         }
 
@@ -236,7 +244,8 @@ TrackBankModule.prototype.handleRequest = function (method, params) {
                         hasContent: slot.hasContent().get(),
                         isPlaying: slot.isPlaying().get(),
                         isRecording: slot.isRecording().get(),
-                        isPlaybackQueued: slot.isPlaybackQueued().get()
+                        isPlaybackQueued: slot.isPlaybackQueued().get(),
+                        name: slot.name().get()
                     });
                 }
                 grid.push(trackSlots);
@@ -277,6 +286,71 @@ TrackBankModule.prototype.handleRequest = function (method, params) {
                 this.trackBank.getItemAt(params[0]).sendBank().getItemAt(params[1]).set(params[2]);
                 return "OK";
             } else throw "Missing parameters";
+
+        case "track.list":
+            var allTracks = [];
+            for (var i = 0; i < 8; i++) {
+                var t = this.trackBank.getItemAt(i);
+                if (t.exists().get()) {
+                    allTracks.push({
+                        index: i,
+                        name: t.name().get(),
+                        type: t.trackType().get(),
+                        position: t.position().get(),
+                        isGroup: t.isGroup().get(),
+                        color: {
+                            red: t.color().red(),
+                            green: t.color().green(),
+                            blue: t.color().blue()
+                        }
+                    });
+                }
+            }
+            return allTracks;
+
+        case "track.get_info":
+            if (params && params[0] !== undefined) {
+                var track = this.trackBank.getItemAt(params[0]);
+                return {
+                    index: params[0],
+                    exists: track.exists().get(),
+                    name: track.name().get(),
+                    type: track.trackType().get(),
+                    position: track.position().get(),
+                    isGroup: track.isGroup().get(),
+                    volume: track.volume().get(),
+                    pan: track.pan().get(),
+                    mute: track.mute().get(),
+                    solo: track.solo().get(),
+                    arm: track.arm().get(),
+                    color: {
+                        red: track.color().red(),
+                        green: track.color().green(),
+                        blue: track.color().blue()
+                    }
+                };
+            } else throw "Missing track index parameter";
+
+        case "track.scroll_into_view":
+            if (params && params[0] !== undefined) {
+                this.trackBank.getItemAt(params[0]).makeVisibleInArranger();
+                this.trackBank.getItemAt(params[0]).makeVisibleInMixer();
+                return "OK";
+            } else throw "Missing track index parameter";
+
+        case "track.bank.scroll_forward":
+            this.trackBank.scrollForwards();
+            return "OK";
+
+        case "track.bank.scroll_backward":
+            this.trackBank.scrollBackwards();
+            return "OK";
+
+        case "track.bank.scroll_to_position":
+            if (params && params[0] !== undefined) {
+                this.trackBank.scrollPosition().set(params[0]);
+                return "OK";
+            } else throw "Missing position parameter";
     }
     return undefined;
 };

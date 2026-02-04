@@ -107,22 +107,28 @@ function handleRequest(request, connection) {
       scenes: [],
       selection: {
         track: null,
-        device: null
+        device: null,
+        clip: null
+      },
+      mixer: {
+        masterVolume: null
       }
     };
     for (var i = 0; i < modules.length; i++) {
       var m = modules[i];
-      // Check for existence of handleRequest and try to get data
       try {
         if (m instanceof TransportModule) result.transport = m.handleRequest("transport.get_status");
-        if (m instanceof TrackBankModule) result.tracks = m.handleRequest("track.bank.get_status");
+        if (m instanceof TrackBankModule) result.tracks = m.handleRequest("track.list");
         if (m instanceof SceneBankModule) result.scenes = m.handleRequest("scene.list");
         if (m instanceof CursorModule) {
-          result.selection.track = m.handleRequest("track.selected.get_status");
-          result.selection.device = m.handleRequest("device.get_status");
+          result.selection.track = m.handleRequest("cursor_track.get_status");
+          result.selection.device = m.handleRequest("cursor_device.get_status");
+          result.selection.clip = m.handleRequest("cursor_clip.get_status");
+        }
+        if (m instanceof MixerModule) {
+          result.mixer.masterVolume = m.handleRequest("mixer.master.get_volume");
         }
       } catch (e) {
-        // Skip if module data retrieval fails
       }
     }
     handled = true;

@@ -10,7 +10,7 @@
     "@modelcontextprotocol/inspector": "^0.1.0"
   },
   "scripts": {
-    "test": "./agent-test",
+    "test": "node tests/runner.js",
     "test:inspector": "npx @modelcontextprotocol/inspector test-env/mcp-config.json",
     "test:inspector-cli": "npx @modelcontextprotocol/inspector --cli test-env/mcp-config.json"
   }

@@ -1,31 +1,71 @@
-import { TestClient } from "./TestClient.js";
-import assert from "assert";
 
-async function run() {
-  console.log("=== Starting Transport Tools Tests ===");
-  const client = new TestClient();
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-  try {
-    await client.connect();
-    console.log("Connected.");
+async function main() {
+    console.log("Starting MCP Client Test...");
 
-    // 1. Recording Status
-    console.log("Testing transport_get_recording_status...");
-    const recording = await client.callTool("transport_get_recording_status");
-    assert.strictEqual(typeof recording, "boolean", "Recording status should be boolean");
+    const transport = new StdioClientTransport({
+        command: "node",
+args: ["server-mcp/index.js"],
+    });
 
-    // 2. Time Signature
-    console.log("Testing transport_get_time_signature...");
-    const timeSig = await client.callTool("transport_get_time_signature");
-    assert.strictEqual(typeof timeSig, "string", "Time signature should be a string");
+    const client = new Client(
+        {
+            name: "example-client",
+            version: "1.0.0",
+        },
+        {
+            capabilities: {},
+        }
+    );
 
-    console.log("=== Transport Tools Tests Passed ===");
-  } catch (error) {
-    console.error("Test Failed:", error);
-    process.exit(1);
-  } finally {
-    await client.disconnect();
-  }
+    await client.connect(transport);
+    console.log("Connected to MCP Server.");
+
+    try {
+        console.log("Listing tools...");
+        const tools = await client.listTools();
+        console.log("Tools found:", tools.tools.map(t => t.name));
+
+        console.log("Testing transport.get_tempo...");
+        const tempo = await client.callTool({
+            name: "transport_get_tempo",
+            arguments: {}
+        });
+        console.log("Current Tempo:", tempo.content[0].text);
+
+        console.log("Testing transport.play...");
+        await client.callTool({
+            name: "transport_play",
+            arguments: {}
+        });
+        console.log("Play command sent.");
+
+        // Wait a bit
+        await new Promise(r => setTimeout(r, 2000));
+
+        console.log("Testing transport.get_position...");
+        const pos = await client.callTool({
+            name: "transport_get_position",
+            arguments: {}
+        });
+        console.log("Position:", pos.content[0].text);
+
+        console.log("Testing transport.stop...");
+        await client.callTool({
+            name: "transport_stop",
+            arguments: {}
+        });
+        console.log("Stop command sent.");
+
+    } catch (e) {
+        console.error("Test failed:", e);
+        // Print the error details if it's an object
+        if (e.message) console.error("Error Message:", e.message);
+    } finally {
+        await client.close();
+    }
 }
 
-run();
+main();

@@ -11,6 +11,10 @@ function TransportModule(host) {
     this.transport.isMetronomeEnabled().markInterested();
     this.transport.timeSignature().numerator().markInterested();
     this.transport.timeSignature().denominator().markInterested();
+    this.transport.isPunchInEnabled().markInterested();
+    this.transport.isPunchOutEnabled().markInterested();
+    this.transport.isArrangerOverdubEnabled().markInterested();
+    this.transport.isClipLauncherOverdubEnabled().markInterested();
 
     // Add Observers for event-driven updates
     this.transport.isPlaying().addValueObserver(function (isPlaying) {
@@ -25,6 +29,28 @@ function TransportModule(host) {
 
 TransportModule.prototype.handleRequest = function (method, params) {
     switch (method) {
+        case "transport.get_status":
+            return {
+                isPlaying: this.transport.isPlaying().get(),
+                isRecording: this.transport.isArrangerRecordEnabled().get(),
+                tempo: this.transport.tempo().value().getRaw(),
+                position: this.transport.getPosition().get(),
+                timeSignature: this.transport.timeSignature().numerator().get() + "/" + this.transport.timeSignature().denominator().get(),
+                loop: {
+                    enabled: this.transport.isArrangerLoopEnabled().get(),
+                    start: this.transport.getInPosition().get(),
+                    end: this.transport.getOutPosition().get()
+                },
+                punch: {
+                    in: this.transport.isPunchInEnabled().get(),
+                    out: this.transport.isPunchOutEnabled().get()
+                },
+                overdub: {
+                    arranger: this.transport.isArrangerOverdubEnabled().get(),
+                    launcher: this.transport.isClipLauncherOverdubEnabled().get()
+                },
+                metronome: this.transport.isMetronomeEnabled().get()
+            };
         case "transport.play":
             this.transport.play();
             return "OK";
@@ -93,6 +119,61 @@ TransportModule.prototype.handleRequest = function (method, params) {
                 // return formatted string
                 return this.transport.timeSignature().numerator().get() + "/" + this.transport.timeSignature().denominator().get();
             }
+        case "transport.tap_tempo":
+            this.transport.tapTempo();
+            return "OK";
+        case "transport.toggle_punch_in":
+            this.transport.isPunchInEnabled().toggle();
+            return "OK";
+        case "transport.toggle_punch_out":
+            this.transport.isPunchOutEnabled().toggle();
+            return "OK";
+        case "transport.set_punch_in":
+            if (params && params[0] !== undefined) {
+                this.transport.isPunchInEnabled().set(params[0]);
+                return "OK";
+            }
+            throw "Missing punch in state parameter";
+        case "transport.set_punch_out":
+            if (params && params[0] !== undefined) {
+                this.transport.isPunchOutEnabled().set(params[0]);
+                return "OK";
+            }
+            throw "Missing punch out state parameter";
+        case "transport.get_punch_status":
+            return {
+                punchIn: this.transport.isPunchInEnabled().get(),
+                punchOut: this.transport.isPunchOutEnabled().get()
+            };
+        case "transport.toggle_arranger_overdub":
+            this.transport.isArrangerOverdubEnabled().toggle();
+            return "OK";
+        case "transport.toggle_launcher_overdub":
+            this.transport.isClipLauncherOverdubEnabled().toggle();
+            return "OK";
+        case "transport.get_overdub_status":
+            return {
+                arranger: this.transport.isArrangerOverdubEnabled().get(),
+                launcher: this.transport.isClipLauncherOverdubEnabled().get()
+            };
+        case "transport.continue_playback":
+            this.transport.continuePlayback();
+            return "OK";
+        case "transport.return_to_zero":
+            this.transport.returnToZero();
+            return "OK";
+        case "transport.fast_forward":
+            this.transport.fastForward();
+            return "OK";
+        case "transport.rewind":
+            this.transport.rewind();
+            return "OK";
+        case "transport.nudge_forward":
+            this.transport.incPosition(1, false); // 1 beat, not snap
+            return "OK";
+        case "transport.nudge_backward":
+            this.transport.incPosition(-1, false); // -1 beat, not snap
+            return "OK";
     }
     return undefined; // Method not handled
 };

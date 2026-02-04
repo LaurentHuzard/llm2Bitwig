@@ -11,7 +11,7 @@ The goal of this project is to demonstrate how an AI Agent can control a Digital
 ## 🏗 Architecture
 The project consists of two main components communicating over a local TCP socket:
 
-1.  **MCP Server (`index.js`)**
+1.  **MCP Server (`server-mcp/index.js`)**
     - A Node.js application that implements the Model Context Protocol.
     - It listens for instructions from an MCP Client (like an AI Assistant).
     - It acts as a TCP Server on port `8888` to relay commands to Bitwig.
@@ -43,6 +43,11 @@ The following MCP tools are currently implemented:
 - `transport_toggle_loop`: Toggle loop on/off
 - `transport_set_loop_start` / `transport_set_loop_end`: Set loop region
 - `transport_get_loop_status`: Query loop state (enabled, start, end)
+- `transport_tap_tempo`: Tap to match BPM via rhythmic input
+- `transport_get_punch_status` / `transport_set_punch_in` / `transport_set_punch_out`: Read and control punch-in/out recording gates
+- `transport_toggle_punch_in` / `transport_toggle_punch_out`: Flip the punch gate state
+- `transport_get_overdub_status` / `transport_toggle_arranger_overdub` / `transport_toggle_launcher_overdub`: Inspect and toggle arranger/launcher overdub modes
+- `transport_continue_playback`, `transport_return_to_zero`, `transport_fast_forward`, `transport_rewind`, `transport_nudge_forward`, `transport_nudge_backward`: Navigate the timeline without restarting playback
 
 ### Track & Mixer
 - `track_bank_get_status`: Get info (name/vol/pan/mute/solo) for 8 tracks
@@ -54,6 +59,21 @@ The following MCP tools are currently implemented:
 - `track_set_color`: Set track color (RGB)
 - `track_selected_get_status`: Get info for the currently selected track
 - `track_selected_set_volume`, `_pan`, `_mute`, `_solo`, `_arm`: Control the selected track
+- `track_list`: Enumerate the current bank of 8 tracks with metadata (name, type, position, group flag, color)
+- `track_get_info`: Get deep metadata and state (volume/pan/mute/solo/arm) for a single track index
+- `track_scroll_into_view`: Make a specific track visible in the arranger and mixer
+- `track_bank_scroll_forward` / `_backward` / `_to_position`: Scroll the bank through the overall track list
+
+### Cursor & Selection
+- `cursor_track_get_status`: Read the selected track's metadata, transport state, color, and mix settings
+- `cursor_device_get_status`: Inspect the currently selected device (expanded, enabled, window state)
+- `cursor_clip_get_status`: Inspect the currently selected clip (loop positions, play region, color)
+
+### Testing
+- Phase 1 is covered by new automated tests:
+  - `tests/test_phase1.js` exercises the combined transport, browser, and track tools delivered so far.
+  - `tests/test_transport.js` now validates tap tempo, punch/overdub controls, and navigation tools.
+  - `tests/test_browser.js` now asserts the updated `browser_set_filter` behavior.
 
 ## 🚀 Installation
 
@@ -96,7 +116,7 @@ Copy the `bitwig-controller/BitwigPOC` folder into your Bitwig Controller Script
 Run the Node.js server. It will start listening on the standard input/output for MCP and on TCP port 19561 for Bitwig.
 
 ```bash
-node index.js
+node server-mcp/index.js
 ```
 
 ### 2. Connect your AI Agent
@@ -118,4 +138,3 @@ For testing the MCP server with an actual LLM agent flow (simulated via CLI), us
 ```
 
 See the [Test Environment Documentation](test-env/README.md) for more details and example prompts.
-

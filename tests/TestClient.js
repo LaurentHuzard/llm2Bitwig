@@ -8,9 +8,11 @@ export class TestClient {
     }
 
     async connect() {
+        console.log("TestClient env BITWIG_MCP_WS_PORT:", process.env.BITWIG_MCP_WS_PORT);
         this.transport = new StdioClientTransport({
             command: "node",
-            args: ["index.js"],
+            args: ["server-mcp/index.js"],
+            env: process.env,
         });
 
         this.client = new Client(
@@ -34,13 +36,13 @@ export class TestClient {
 
     async callTool(name, args = {}) {
         if (!this.client) throw new Error("Client not connected");
-        
+
         try {
             const result = await this.client.callTool({
                 name: name,
                 arguments: args,
             });
-            
+
             // Helper: parse content if it looks like JSON
             if (result.content && result.content[0] && result.content[0].text) {
                 try {

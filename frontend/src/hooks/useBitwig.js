@@ -14,7 +14,8 @@ export function useBitwig() {
 
     // Connect to WebSocket
     useEffect(() => {
-        ws.current = new WebSocket('ws://localhost:8080');
+        const port = import.meta.env.VITE_BITWIG_WS_PORT || '2624';
+        ws.current = new WebSocket(`ws://localhost:${port}`);
 
         ws.current.onopen = () => {
             console.log('Connected to Bitwig Server');

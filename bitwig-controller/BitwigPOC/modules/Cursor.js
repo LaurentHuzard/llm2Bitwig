@@ -8,12 +8,28 @@ function CursorModule(host) {
     this.cursorTrack.solo().markInterested();
     this.cursorTrack.arm().markInterested();
     this.cursorTrack.name().markInterested();
+    this.cursorTrack.color().markInterested();
+    this.cursorTrack.exists().markInterested();
+    this.cursorTrack.trackType().markInterested();
+    this.cursorTrack.position().markInterested();
 
     // Cursor Device Setup
     this.cursorDevice = this.cursorTrack.createCursorDevice("MCP_DEVICE", "Cursor Device", 0, CursorDeviceFollowMode.FOLLOW_SELECTION);
     this.cursorDevice.name().markInterested();
     this.cursorDevice.isWindowOpen().markInterested();
     this.cursorDevice.isExpanded().markInterested();
+    this.cursorDevice.isEnabled().markInterested();
+    this.cursorDevice.exists().markInterested();
+    this.cursorDevice.position().markInterested();
+
+    // Cursor Clip Setup
+    this.cursorClip = this.cursorTrack.createLauncherCursorClip("MCP_CLIP", "Cursor Clip", 16, 128);
+    this.cursorClip.exists().markInterested();
+    this.cursorClip.getLoopLength().markInterested();
+    this.cursorClip.getLoopStart().markInterested();
+    this.cursorClip.getPlayStart().markInterested();
+    this.cursorClip.getPlayStop().markInterested();
+    this.cursorClip.color().markInterested();
 
     // Remote Controls
     this.remoteControlsBank = this.cursorDevice.createCursorRemoteControlsPage(8);
@@ -180,6 +196,49 @@ CursorModule.prototype.handleRequest = function (method, params) {
         case "device.browse_replace":
             this.cursorDevice.browseToReplaceDevice();
             return "OK";
+        
+        // --- Enhanced Cursor Status ---
+        case "cursor_track.get_status":
+            return {
+                exists: this.cursorTrack.exists().get(),
+                name: this.cursorTrack.name().get(),
+                type: this.cursorTrack.trackType().get(),
+                position: this.cursorTrack.position().get(),
+                volume: this.cursorTrack.volume().get(),
+                pan: this.cursorTrack.pan().get(),
+                mute: this.cursorTrack.mute().get(),
+                solo: this.cursorTrack.solo().get(),
+                arm: this.cursorTrack.arm().get(),
+                color: {
+                    red: this.cursorTrack.color().red(),
+                    green: this.cursorTrack.color().green(),
+                    blue: this.cursorTrack.color().blue()
+                }
+            };
+        
+        case "cursor_device.get_status":
+            return {
+                exists: this.cursorDevice.exists().get(),
+                name: this.cursorDevice.name().get(),
+                position: this.cursorDevice.position().get(),
+                isEnabled: this.cursorDevice.isEnabled().get(),
+                isWindowOpen: this.cursorDevice.isWindowOpen().get(),
+                isExpanded: this.cursorDevice.isExpanded().get()
+            };
+        
+        case "cursor_clip.get_status":
+            return {
+                exists: this.cursorClip.exists().get(),
+                loopLength: this.cursorClip.getLoopLength().get(),
+                loopStart: this.cursorClip.getLoopStart().get(),
+                playStart: this.cursorClip.getPlayStart().get(),
+                playStop: this.cursorClip.getPlayStop().get(),
+                color: {
+                    red: this.cursorClip.color().red(),
+                    green: this.cursorClip.color().green(),
+                    blue: this.cursorClip.color().blue()
+                }
+            };
     }
     return undefined;
 };
