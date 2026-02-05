@@ -463,7 +463,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
-    const { name, arguments: args } = request.params;
+    const { name } = request.params;
+    const args = (request.params.arguments ?? {}) as Record<string, any>;
     let result: unknown;
 
     switch (name) {
