@@ -102,6 +102,10 @@ function callBitwig(method: string, params: unknown[] = []): Promise<unknown> {
       id,
     };
 
+    // Store request first (before timeout) to match original JavaScript ordering
+    // JavaScript's single-threaded nature ensures no race condition:
+    // - The timeout callback won't fire until this function returns
+    // - Response handlers run on the same event loop
     pendingRequests.set(id, { resolve, reject });
 
     const msg = JSON.stringify(request);
