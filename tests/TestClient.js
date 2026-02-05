@@ -10,7 +10,7 @@ export class TestClient {
     async connect() {
         this.transport = new StdioClientTransport({
             command: "node",
-            args: ["index.js"],
+            args: ["dist/index.js"],
         });
 
         this.client = new Client(

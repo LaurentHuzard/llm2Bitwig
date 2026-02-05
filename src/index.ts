@@ -11,17 +11,31 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import net from "net";
+import net from "node:net";
+
+type PendingRequest = {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  timeout: NodeJS.Timeout;
+};
+
+type BitwigResponse = {
+  id?: number;
+  result?: unknown;
+  error?: {
+    message?: string;
+  };
+};
 
 // --- Bitwig Connection Configuration ---
 const BITWIG_HOST = "127.0.0.1";
 const BITWIG_PORT = 8888;
-let client = null;
+let client: net.Socket | null = null;
 let requestId = 0;
-const pendingRequests = new Map();
+const pendingRequests = new Map<number, PendingRequest>();
 
 // --- TCP Client Setup ---
-function connectToBitwig() {
+function connectToBitwig(): Promise<void> {
   return new Promise((resolve, reject) => {
     client = new net.Socket();
 
@@ -31,19 +45,21 @@ function connectToBitwig() {
       setTimeout(resolve, 500);
     });
 
-    client.on("data", (data) => {
+    client.on("data", (data: Buffer) => {
       // Handle incoming data (stream handling needed for robust impl, simplistic for now)
       const lines = data.toString().split("\n");
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
-          const response = JSON.parse(line);
+          const response = JSON.parse(line) as BitwigResponse;
           if (response.id !== undefined && pendingRequests.has(response.id)) {
-            const { resolve, reject } = pendingRequests.get(response.id);
+            const pending = pendingRequests.get(response.id);
+            if (!pending) continue;
+            clearTimeout(pending.timeout);
             if (response.error) {
-              reject(new Error(response.error.message));
+              pending.reject(new Error(response.error.message ?? "Unknown error"));
             } else {
-              resolve(response.result);
+              pending.resolve(response.result);
             }
             pendingRequests.delete(response.id);
           }
@@ -60,12 +76,13 @@ function connectToBitwig() {
 
     client.on("error", (err) => {
       console.error("Bitwig connection error:", err);
+      reject(err);
     });
   });
 }
 
 // --- JSON-RPC Helper ---
-function callBitwig(method, params = []) {
+function callBitwig(method: string, params: unknown[] = []): Promise<unknown> {
   return new Promise(async (resolve, reject) => {
     if (!client) {
       try {
@@ -80,27 +97,27 @@ function callBitwig(method, params = []) {
       jsonrpc: "2.0",
       method,
       params,
-      id
+      id,
     };
 
-    pendingRequests.set(id, { resolve, reject });
+    const timeout = setTimeout(() => {
+      if (pendingRequests.has(id)) {
+        pendingRequests
+          .get(id)
+          ?.reject(new Error("Timeout waiting for Bitwig response"));
+        pendingRequests.delete(id);
+      }
+    }, 5000);
+
+    pendingRequests.set(id, { resolve, reject, timeout });
 
     const msg = JSON.stringify(request);
     const msgBuf = Buffer.from(msg, "utf8");
     const header = Buffer.alloc(4);
     header.writeUInt32BE(msgBuf.length, 0);
-    client.write(Buffer.concat([header, msgBuf]));
-
-    // Timeout
-    setTimeout(() => {
-      if (pendingRequests.has(id)) {
-        pendingRequests.get(id).reject(new Error("Timeout waiting for Bitwig response"));
-        pendingRequests.delete(id);
-      }
-    }, 5000);
+    client?.write(Buffer.concat([header, msgBuf]));
   });
 }
-
 
 // --- MCP Server Setup ---
 const server = new Server(
@@ -180,7 +197,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // --- Track Bank Tools ---
       {
         name: "track_bank_get_status",
-        description: "Get status (vol/pan/mute/solo) of all 8 tracks in the current bank window",
+        description:
+          "Get status (vol/pan/mute/solo) of all 8 tracks in the current bank window",
         inputSchema: { type: "object", properties: {} },
       },
       {
@@ -202,7 +220,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {
             index: { type: "number", description: "Track index 0-7" },
-            value: { type: "number", description: "Pan value 0.0 to 1.0 (0.5 is center)" },
+            value: {
+              type: "number",
+              description: "Pan value 0.0 to 1.0 (0.5 is center)",
+            },
           },
           required: ["index", "value"],
         },
@@ -214,7 +235,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {
             index: { type: "number", description: "Track index 0-7" },
-            state: { type: "boolean", description: "True to mute, False to unmute" },
+            state: {
+              type: "boolean",
+              description: "True to mute, False to unmute",
+            },
           },
           required: ["index", "state"],
         },
@@ -226,7 +250,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {
             index: { type: "number", description: "Track index 0-7" },
-            state: { type: "boolean", description: "True to solo, False to unsolo" },
+            state: {
+              type: "boolean",
+              description: "True to solo, False to unsolo",
+            },
           },
           required: ["index", "state"],
         },
@@ -307,7 +334,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             trackIndex: { type: "number", description: "Track index 0-7" },
             slotIndex: { type: "number", description: "Slot index 0-7" },
-            lengthBeats: { type: "number", description: "Length of clip in beats (e.g., 4, 8, 16)" },
+            lengthBeats: {
+              type: "number",
+              description: "Length of clip in beats (e.g., 4, 8, 16)",
+            },
           },
           required: ["trackIndex", "slotIndex", "lengthBeats"],
         },
@@ -434,7 +464,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const { name, arguments: args } = request.params;
-    let result;
+    let result: unknown;
 
     switch (name) {
       case "transport_play":
@@ -487,10 +517,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // --- Clip & Scene Tools ---
       case "clip_launch":
-        result = await callBitwig("clip.launch", [args.trackIndex, args.slotIndex]);
+        result = await callBitwig("clip.launch", [
+          args.trackIndex,
+          args.slotIndex,
+        ]);
         break;
       case "clip_record":
-        result = await callBitwig("clip.record", [args.trackIndex, args.slotIndex]);
+        result = await callBitwig("clip.record", [
+          args.trackIndex,
+          args.slotIndex,
+        ]);
         break;
       case "clip_stop":
         result = await callBitwig("clip.stop", [args.trackIndex]);
@@ -505,7 +541,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await callBitwig("scene.create");
         break;
       case "clip_create":
-        result = await callBitwig("clip.create", [args.trackIndex, args.slotIndex, args.lengthBeats]);
+        result = await callBitwig("clip.create", [
+          args.trackIndex,
+          args.slotIndex,
+          args.lengthBeats,
+        ]);
         break;
 
       // --- Selected Track Tools ---
@@ -550,7 +590,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await callBitwig("device.get_remote_controls");
         break;
       case "device_set_remote_control":
-        result = await callBitwig("device.set_remote_control", [args.index, args.value]);
+        result = await callBitwig("device.set_remote_control", [
+          args.index,
+          args.value,
+        ]);
         break;
       case "device_page_next":
         result = await callBitwig("device.page_next");
@@ -577,7 +620,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       content: [
         {
           type: "text",
-          text: `Error: ${error.message}`,
+          text: `Error: ${(error as Error).message}`,
         },
       ],
     };

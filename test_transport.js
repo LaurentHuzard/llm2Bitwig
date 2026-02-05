@@ -7,7 +7,7 @@ async function main() {
 
     const transport = new StdioClientTransport({
         command: "node",
-        args: ["index.js"]
+        args: ["dist/index.js"]
     });
 
     const client = new Client(
