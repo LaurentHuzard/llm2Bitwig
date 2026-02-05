@@ -134,7 +134,7 @@ For testing the MCP server with an actual LLM agent flow (simulated via CLI), us
 
 ### Quick Start
 ```bash
-./test-env/run-llm-test.sh
+./tests/test-env/run-llm-test.sh
 ```
 
 See the [Test Environment Documentation](test-env/README.md) for more details and example prompts.
