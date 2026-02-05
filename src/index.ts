@@ -16,7 +16,7 @@ import net from "net";
 type PendingRequest = {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
-  timeout: NodeJS.Timeout;
+  timeout?: NodeJS.Timeout;
 };
 
 type BitwigResponse = {
@@ -55,7 +55,9 @@ function connectToBitwig(): Promise<void> {
           if (response.id !== undefined && pendingRequests.has(response.id)) {
             const pending = pendingRequests.get(response.id);
             if (!pending) continue;
-            clearTimeout(pending.timeout);
+            if (pending.timeout) {
+              clearTimeout(pending.timeout);
+            }
             if (response.error) {
               pending.reject(new Error(response.error.message ?? "Unknown error"));
             } else {
@@ -100,6 +102,15 @@ function callBitwig(method: string, params: unknown[] = []): Promise<unknown> {
       id,
     };
 
+    pendingRequests.set(id, { resolve, reject });
+
+    const msg = JSON.stringify(request);
+    const msgBuf = Buffer.from(msg, "utf8");
+    const header = Buffer.alloc(4);
+    header.writeUInt32BE(msgBuf.length, 0);
+    client?.write(Buffer.concat([header, msgBuf]));
+
+    // Timeout
     const timeout = setTimeout(() => {
       if (pendingRequests.has(id)) {
         pendingRequests
@@ -109,13 +120,11 @@ function callBitwig(method: string, params: unknown[] = []): Promise<unknown> {
       }
     }, 5000);
 
-    pendingRequests.set(id, { resolve, reject, timeout });
-
-    const msg = JSON.stringify(request);
-    const msgBuf = Buffer.from(msg, "utf8");
-    const header = Buffer.alloc(4);
-    header.writeUInt32BE(msgBuf.length, 0);
-    client?.write(Buffer.concat([header, msgBuf]));
+    // Store timeout reference for cleanup
+    const pending = pendingRequests.get(id);
+    if (pending) {
+      pending.timeout = timeout;
+    }
   });
 }
 
