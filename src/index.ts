@@ -11,7 +11,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import net from "node:net";
+import net from "net";
 
 type PendingRequest = {
   resolve: (value: unknown) => void;
