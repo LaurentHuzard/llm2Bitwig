@@ -11,8 +11,8 @@ The goal of this project is to demonstrate how an AI Agent can control a Digital
 ## 🏗 Architecture
 The project consists of two main components communicating over a local TCP socket:
 
-1.  **MCP Server (`index.js`)**
-    - A Node.js application that implements the Model Context Protocol.
+1.  **MCP Server (`src/index.ts`)**
+    - A Node.js application (TypeScript) that implements the Model Context Protocol.
     - It listens for instructions from an MCP Client (like an AI Assistant).
     - It acts as a TCP Server on port `8888` to relay commands to Bitwig.
 
@@ -28,7 +28,6 @@ graph LR
     C -->|Bitwig API| D[Bitwig Studio]
 ```
 
-## ✨ Features / Tools
 ## ✨ Features / Tools
 The following MCP tools are currently implemented:
 
@@ -56,7 +55,7 @@ The following MCP tools are currently implemented:
 ### 2. Install Dependencies
 Clone this repository and install the Node.js dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Install Bitwig Controller Script
@@ -85,10 +84,11 @@ Copy the `bitwig-controller/BitwigPOC` folder into your Bitwig Controller Script
 ## 💻 Usage
 
 ### 1. Start the MCP Server
-Run the Node.js server. It will start listening on the standard input/output for MCP and on TCP port 19561 for Bitwig.
+Run the Node.js server. It will start listening on the standard input/output for MCP and on TCP port 8888 for Bitwig.
 
 ```bash
-node index.js
+pnpm run build
+pnpm start
 ```
 
 ### 2. Connect your AI Agent

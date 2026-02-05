@@ -2,10 +2,10 @@
 Plan refactor of the project to TypeScript.
 
 ## Status
-In Progress
+Ready for Review
 
 ## Next Agent
-Implementer
+Orchestrator
 
 ## Notes
 - Waiting on implementation plan for user review.
