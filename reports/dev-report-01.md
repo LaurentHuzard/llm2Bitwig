@@ -31,7 +31,6 @@ Not content with just local talk, we reached out. We integrated the **Open-Meteo
 ## 📊 The Stats
 
 -   **Critical Bugs Squashed**: 1 (Bitwig Connection)
--   **New Integrations**: 1 (Open-Meteo)
 -   **Agents Active**: 7
 -   **Mood**: Optimistic
 
