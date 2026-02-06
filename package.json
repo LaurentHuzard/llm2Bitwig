@@ -1,16 +1,32 @@
 {
   "name": "bitwig-mcp-poc",
-  "version": "0.0.1",
+  "version": "0.13.12",
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "jiti": "^2.6.1",
+    "tailwindcss": "^4.1.18",
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.1.0"
+    "@eslint/js": "^9.39.2",
+    "@modelcontextprotocol/inspector": "^0.1.0",
+    "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "esbuild": "^0.25.9",
+    "eslint": "^9.39.2",
+    "globals": "^17.3.0",
+    "prettier": "^3.8.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.54.0"
   },
   "scripts": {
-    "test": "node tests/runner.js",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:controller": "esbuild bitwig-controller/controller-mcp.ts --bundle --format=iife --platform=neutral --target=es2017 --outfile=bitwig-controller/dist/controller-mcp.js",
+    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.tests.json --noEmit && tsc -p bitwig-controller/tsconfig.json --noEmit && tsc -p frontend/tsconfig.json --noEmit",
+    "test": "node --import tsx tests/runner.ts",
     "test:inspector": "npx @modelcontextprotocol/inspector test-env/mcp-config.json",
     "test:inspector-cli": "npx @modelcontextprotocol/inspector --cli test-env/mcp-config.json"
   }

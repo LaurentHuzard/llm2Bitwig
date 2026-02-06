@@ -64,7 +64,7 @@ Selection is now queryable as structured state:
 
 ## 🧾 Files Touched
 
-- `server-mcp/index.js` (MCP tool catalog + routing)
+- `server-mcp/index.ts` (MCP tool catalog + routing; build output in `dist/index.js`)
 - `bitwig-controller/BitwigPOC/BitwigPOC.control.js` (project summary aggregation)
 - `bitwig-controller/BitwigPOC/modules/Transport.js` (punch/overdub/nav + consolidated status)
 - `bitwig-controller/BitwigPOC/modules/TrackBank.js` (track list/info + bank scrolling)

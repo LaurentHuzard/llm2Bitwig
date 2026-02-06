@@ -3,7 +3,7 @@
         "bitwig-mcp": {
             "command": "node",
             "args": [
-                "/home/taenia/Code/bitwig-mcp-poc/server-mcp/index.js"
+                "/home/taenia/Code/bitwig-mcp-poc/dist/index.js"
             ]
         }
     }

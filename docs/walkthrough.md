@@ -9,8 +9,8 @@ Implemented a comprehensive clip launcher interface that provides visual feedbac
 
 ## Components Created/Modified
 
-### 1. Controller Module: `modules/TrackBank.js`
-**Location**: `/bitwig-controller/BitwigPOC/modules/TrackBank.js`
+### 1. Controller Module: `modules/TrackBank.ts`
+**Location**: `/bitwig-controller/BitwigPOC/modules/TrackBank.ts`
 
 **New Methods Added**:
 | Method | Parameters | Description |
@@ -33,7 +33,7 @@ Implemented a comprehensive clip launcher interface that provides visual feedbac
 - `isPlaybackQueued` - Clip is queued to play
 
 ### 2. MCP Tools
-**Location**: `server-mcp/index.js`
+**Location**: `server-mcp/index.ts` (build output: `dist/index.js`)
 
 Added 4 new MCP tools:
 - `clip_get_status` - Get individual slot status
@@ -41,8 +41,8 @@ Added 4 new MCP tools:
 - `clip_set_color` - Set clip color (RGB 0.0-1.0)
 - `clip_get_color` - Get clip color
 
-### 3. Frontend Component: `ClipLauncher.jsx`
-**Location**: `/frontend/src/components/ClipLauncher.jsx`
+### 3. Frontend Component: `ClipLauncher.tsx`
+**Location**: `/frontend/src/components/ClipLauncher.tsx`
 
 **Features**:
 - **8×8 Grid**: Visual representation of all clip slots
@@ -59,7 +59,7 @@ Added 4 new MCP tools:
   - Right-click: Record into slot
   - Hover on track header: Show stop button
 
-### 4. Hook Updates: `useBitwig.js`
+### 4. Hook Updates: `useBitwig.ts`
 **Added**:
 - `clipGrid` state (polls `clip_get_grid` every 200ms)
 - `clipLauncherActions` object:
@@ -67,7 +67,7 @@ Added 4 new MCP tools:
   - `stop(trackIndex)` - Stop track
   - `record(trackIndex, sceneIndex)` - Record into slot
 
-### 5. App Integration: `App.jsx`
+### 5. App Integration: `App.tsx`
 - Added ClipLauncher section (positioned before Mixer)
 - Increased max-width to `max-w-6xl` for wider layout
 - Integrated clipLauncherActions
@@ -76,7 +76,7 @@ Added 4 new MCP tools:
 
 ### Prerequisites
 1. **Restart Bitwig Controller**: Toggle power in Settings → Controllers → "Bitwig POC"
-2. **Restart MCP Server**: `node server-mcp/index.js` (from project root)
+2. **Restart MCP Server**: `node dist/index.js` (from project root)
 3. **Frontend Running**: `npm run dev` (in `/frontend` directory)
 
 ### Test Steps

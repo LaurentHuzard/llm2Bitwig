@@ -1,99 +1,77 @@
-# Implementation Plan - Expanded Bitwig API Coverage (Multi-Sprint)
+# Implementation Plan - Bitwig Controller TypeScript Modernization
 
 ## Goal Description
-Expand the MCP toolset toward **full Bitwig API coverage** based on `bitwig-api-docs/`, delivered in **phased milestones**. Each tool implementation is committed separately using the format `feat(tool): <tool_name>`. Documentation and a journalist report will be produced at the end of each milestone.
+Rewrite `bitwig-controller/*` to idiomatic TypeScript using `const`/`let`, explicit types, and ES module imports/exports while preserving current runtime behavior and Bitwig compatibility.
 
-## Scope Reality Check
-The Bitwig Controller API is large (hundreds of interfaces). Full coverage requires multiple sprints, new controller modules, and extensive testing. This plan defines the **phased roadmap** and the **tool contract** for each phase.
+## Roadmap Alignment
+This aligns with the controller bridge work in **Task 2** of `docs/bitwig-mcp-controller-roadmap.md`, improving maintainability without changing the MCP tool surface.
 
 ## User Review Required
 > [!IMPORTANT]
-> **Per-tool commits** are required after each tool is implemented. Commit message format: `feat(tool): <tool_name>`.
->
-> **Phased rollout**: We will deliver in milestones, with a journalist report after each milestone (e.g., `reports/dev-report-03.md`).
->
-> **Breaking changes**: Tool names follow the existing MCP naming style (`transport_get_*`, `track_*`, etc.). If you prefer a different naming convention, confirm now.
+> The following decisions affect controller build/runtime behavior and need explicit confirmation:
+> 1. **Module system & bundling**: Use ES module source with a bundler (e.g., `esbuild`) to emit a single `controller-mcp.js`, or keep multi-file outputs and use `load()` to stitch them at runtime?
+> 2. **Output location**: Keep compiled JS in `bitwig-controller/` (checked in), or emit to a `bitwig-controller/dist/` folder and copy/symlink for Bitwig?
+> 3. **Bitwig global typing**: Add a minimal ambient `bitwig-controller/types/bitwig.d.ts` with only required APIs, or a broader surface from docs?
 
-## Phase Plan (Milestones)
+## Scope
+### In-scope
+- `bitwig-controller/controller-mcp.ts`
+- `bitwig-controller/modules/*.ts`
+- New `bitwig-controller/tsconfig.json`
+- New `bitwig-controller/types/bitwig.d.ts` (ambient Bitwig globals)
+- Update `package.json` controller build script if required
 
-### Phase 0 — Parity + Stability (Short)
-**Goal:** Align MCP tools with existing controller capabilities and fix mismatches.
-**Tools / Fixes:**
-- `transport_get_recording_status` → `transport.getIsRecording`
-- `transport_get_time_signature` → `transport.time_signature`
-- `browser_set_filter` → `browser.set_filter`
-- `device_select_first` / `device_select_last`
-- Fix send mapping for `mixer_get_send_level` / `mixer_set_send_level`
-- Ensure `BrowserModule` is loaded in `BitwigPOC.control.js`
+### Out-of-scope (unless requested)
+- Server, frontend, and tests refactors
+- Any MCP tool behavior changes
+- Bitwig API feature expansion
 
-### Phase 1 — Roadmap Must‑Have Core
-**Transport & Timeline**
-- Tap tempo, punch in/out, arrange/launcher overdub
-- Play-start position, jump, nudges
-**Tracks & Mixer**
-- Track create (audio/instrument/effect), list, get info
-- Track arm/monitor mode, input/output routing
-- Track visibility and scrolling
-**Selection & State Query**
-- Cursor track/device/clip state query tools
-- Project state summary (expanded)
-**Observability**
-- Event stream: transport state, track state, clip state
+## Files to Modify / Add (Expected)
+### Controller
+- `bitwig-controller/controller-mcp.ts`
+- `bitwig-controller/modules/Application.ts`
+- `bitwig-controller/modules/Browser.ts`
+- `bitwig-controller/modules/Clip.ts`
+- `bitwig-controller/modules/Cursor.ts`
+- `bitwig-controller/modules/Device.ts`
+- `bitwig-controller/modules/Mixer.ts`
+- `bitwig-controller/modules/SceneBank.ts`
+- `bitwig-controller/modules/TrackBank.ts`
+- `bitwig-controller/modules/Transport.ts`
+- `bitwig-controller/tsconfig.json` (new)
+- `bitwig-controller/types/bitwig.d.ts` (new)
 
-### Phase 2 — Clip Launcher + Clip Properties
-**Clip Launcher**
-- Clip properties: name, length, loop start/end, playback position
-- Clip stop all, scene navigation helpers
-**Clip Content**
-- Step editing enhancements (clear row/col, move notes)
-- Note expression controls (basic)
+## Implementation Steps (Implementer)
+1. **Controller build setup**
+   - Add `bitwig-controller/tsconfig.json` with strict settings aligned to the repo base.
+   - Decide on module output strategy (bundled single file vs. `load()` with multi-file output).
+   - Update `package.json` `build:controller` to use the chosen build pipeline.
 
-### Phase 3 — Device Chain + Browser Assistant
-**Device Chain**
-- Full device info, insert/replace, bypass, window/minimize
-- Parameter get/set, modulation depth
-**Browser**
-- Filter columns, results list + select + audition
-- Preset/sample browser flows
+2. **Introduce shared types and contracts**
+   - Create `bitwig-controller/types/bitwig.d.ts` for `host`, `loadAPI`, `load`, `println`, `RemoteConnection`, and any API used by modules.
+   - Add a `ControllerModule` interface (`handleRequest(method, params)` signature).
+   - Define shared `RequestParams`/`RequestResult` types as needed.
 
-### Phase 4 — Arrangement & Timeline
-- Cue markers: create/delete/list
-- Arranger view controls (zoom/scroll)
-- Automation lanes (basic)
+3. **Module refactor to ES modules**
+   - Convert each module to `export class ...` with explicit constructor types.
+   - Replace `var` with `const`/`let`.
+   - Replace global dependencies (like `sendEvent`) with imported helper or injected callback.
+   - Keep behavior identical; avoid changing message formats or tool names.
 
-### Phase 5 — Actions & Commands
-- `application_actions_list`
-- `application_action_invoke`
-- Action categories listing
+4. **Controller entry refactor**
+   - Replace `load()` usage with `import { ... } from "./modules/..."` in `controller-mcp.ts` (or keep `load()` only if bundling is not approved).
+   - Type `modules` array and all request/response handling helpers.
+   - Remove `// @ts-nocheck` once types are in place.
 
-### Phase 6 — Preferences & Settings
-- Preferences access
-- Document state helpers
+5. **Compile and verify outputs**
+   - Ensure emitted JS remains compatible with Bitwig’s controller runtime.
+   - Check in compiled JS outputs if required for Bitwig usage.
 
-### Phase 7 — MIDI / Hardware / OSC (Optional)
-- MIDI input/output routing
-- OSC server basics
-- Hardware surface bindings (lights/displays) for feedback
+## Verification Steps (Tester)
+1. `pnpm run build:controller` and confirm expected JS output(s) exist.
+2. Load controller in Bitwig and verify it starts without errors.
+3. Run a quick MCP smoke test (ping + transport_play/stop) to confirm tool routing.
 
-## Files to Modify (Expected)
-1. `server-mcp/index.js` (tool definitions + routing)
-2. `bitwig-controller/BitwigPOC/BitwigPOC.control.js`
-3. `bitwig-controller/BitwigPOC/modules/*.js` (new modules per phase)
-4. `tests/` (new tests per phase)
-5. `README.md` and `docs/` (updated tool catalog + usage)
-
-## Implementation Rules
-- **Commit after each tool implementation** using: `feat(tool): <tool_name>`.
-- If a tool requires multiple files (controller + MCP + tests), implement fully, then commit.
-- No destructive changes without explicit approval in plan.
-
-## Verification Plan (Tester)
-- Run existing test suite + new phase tests.
-- Manual Bitwig verification for UI and browser actions.
-- Update `walkthrough.md` after each phase.
-
-## Handover & Comms
-After each phase:
-1. Tester updates `walkthrough.md`
-2. Tech Writer updates `README.md`
-3. Journalist publishes milestone report in `reports/`
+## Risks / Notes
+- Bitwig controller runtime does not support Node/CommonJS by default; bundling strategy must ensure compatibility.
+- ES module syntax in TS requires a build step that removes imports for Bitwig’s runtime.

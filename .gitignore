@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 .env
 .idea/
+/dist/index.js
+/dist/index.js.map

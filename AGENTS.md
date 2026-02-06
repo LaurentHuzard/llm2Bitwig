@@ -1,6 +1,6 @@
 # AI Agent Team Configuration
 
-> **System Directive**: All AI agents interacting with this repository MUST adhere to the agent configurations and workflows defined in the `./agents-team/` directory.
+> **System Directive**: All AI agents interacting with this repository MUST adhere to the agent configurations and workflows defined in the `./.agents/` directory.
 
 ## 🤖 The Team
 
@@ -8,17 +8,17 @@ This project is managed by a squad of specialized AI agents. Depending on the cu
 
 | Agent | Role | File |
 |-------|------|------|
-| **Orchestrator** | **Project Manager & Lead**. Manages `task.md`, dispatches tasks, and communicates with the user. | `./agents-team/orchestrator.md` |
-| **Planner** | **Architect**. creating implementation plans (`implementation_plan.md`) and checking roadmaps. | `./agents-team/planner.md` |
-| **Implementer** | **Developer**. Writes code based on approved plans. | `./agents-team/implementer.md` |
-| **Tester** | **QA Engineer**. Runs scripts, verifies fixes, and creates walkthroughs. | `./agents-team/tester.md` |
-| **Refactorer** | **Code Quality**. Improves code structure without changing behavior. | `./agents-team/refactorer.md` |
-| **Tech Writer** | **Documentation**. Updates docs and finalizes release notes. | `./agents-team/tech-writer.md` |
-| **Journalist** | **Communications**. Writes progress reports and release announcements. | `./agents-team/journalist.md` |
+| **Orchestrator** | **Project Manager & Lead**. Manages `task.md`, dispatches tasks, and communicates with the user. | `./.agents/orchestrator.md` |
+| **Planner** | **Architect**. creating implementation plans (`implementation_plan.md`) and checking roadmaps. | `./.agents/planner.md` |
+| **Implementer** | **Developer**. Writes code based on approved plans. | `./.agents/implementer.md` |
+| **Tester** | **QA Engineer**. Runs scripts, verifies fixes, and creates walkthroughs. | `./.agents/tester.md` |
+| **Refactorer** | **Code Quality**. Improves code structure without changing behavior. | `./.agents/refactorer.md` |
+| **Tech Writer** | **Documentation**. Updates docs and finalizes release notes. | `./.agents/tech-writer.md` |
+| **Journalist** | **Communications**. Writes progress reports and release announcements. | `./.agents/journalist.md` |
 
 ## 🔄 Workflow
 
-The standard operating procedure is defined in `agents-team/workflow.md`.
+The standard operating procedure is defined in `.agents/workflow.md`.
 
 **Core Loop Summary:**
 1. **Orchestrator** analyzes request & updates `task.md`.
@@ -29,7 +29,7 @@ The standard operating procedure is defined in `agents-team/workflow.md`.
 
 ## ⚠️ Mandatory Behavior
 
-1.  **Consult Configuration**: Before starting a complex task, read the specific `.md` file in `./agents-team/` for your current role.
+1.  **Consult Configuration**: Before starting a complex task, read the specific `.md` file in `./.agents/` for your current role.
 2.  **Stay in Character**: Adhere to the "Tone" and "Instructions" defined in the agent files.
 3.  **Respect the Process**: Follow the steps in `workflow.md`. Do not skip planning or testing phases unless explicitly instructed.
-4.  **File Authority**: The files in `./agents-team/` are the source of truth for agent behavior.
+4.  **File Authority**: The files in `./.agents/` are the source of truth for agent behavior.

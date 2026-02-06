@@ -11,12 +11,12 @@ The goal of this project is to demonstrate how an AI Agent can control a Digital
 ## 🏗 Architecture
 The project consists of two main components communicating over a local TCP socket:
 
-1.  **MCP Server (`server-mcp/index.js`)**
+1.  **MCP Server (`server-mcp/index.ts`, build output in `dist/index.js`)**
     - A Node.js application that implements the Model Context Protocol.
     - It listens for instructions from an MCP Client (like an AI Assistant).
     - It acts as a TCP Server on port `8888` to relay commands to Bitwig.
 
-2.  **Bitwig Controller Script (`BitwigPOC.control.js`)**
+2.  **Bitwig Controller Script (`BitwigPOC.control.ts`, compiled to `.control.js`)**
     - A Java/JavaScript extension running inside Bitwig Studio.
     - It connects to the MCP Server via TCP.
     - It executes the API commands (e.g., `application.createInstrumentTrack()`) received from the server.
@@ -71,9 +71,9 @@ The following MCP tools are currently implemented:
 
 ### Testing
 - Phase 1 is covered by new automated tests:
-  - `tests/test_phase1.js` exercises the combined transport, browser, and track tools delivered so far.
-  - `tests/test_transport.js` now validates tap tempo, punch/overdub controls, and navigation tools.
-  - `tests/test_browser.js` now asserts the updated `browser_set_filter` behavior.
+  - `tests/test_phase1.ts` exercises the combined transport, browser, and track tools delivered so far.
+  - `tests/test_transport.ts` now validates tap tempo, punch/overdub controls, and navigation tools.
+  - `tests/test_browser.ts` now asserts the updated `browser_set_filter` behavior.
 
 ## 🚀 Installation
 
@@ -116,7 +116,7 @@ Copy the `bitwig-controller/BitwigPOC` folder into your Bitwig Controller Script
 Run the Node.js server. It will start listening on the standard input/output for MCP and on TCP port 19561 for Bitwig.
 
 ```bash
-node server-mcp/index.js
+node dist/index.js
 ```
 
 ### 2. Connect your AI Agent
