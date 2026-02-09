@@ -1,5 +1,7 @@
 # Walkthrough: Clip Launcher Enhancement
 
+> Note: This walkthrough is a historical artifact and may reference legacy controller paths (`bitwig-controller/BitwigPOC/*`). Current bundled controller file is `bitwig-controller/controller-mcp.js`.
+
 **Date**: 2026-01-29
 **Feature**: Clip Launcher Grid (8×8)
 **Status**: Ready for Testing

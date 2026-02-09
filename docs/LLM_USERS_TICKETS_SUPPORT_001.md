@@ -1,5 +1,7 @@
 # Support Ticket: LLM_USERS_TICKETS_SUPPORT_001
 
+> Note: This support ticket is historical and may reference legacy controller paths (`bitwig-controller/BitwigPOC/*`).
+
 **Date:** Friday, 30 January 2026
 **Agent:** Gemini CLI Agent
 **Status:** Open

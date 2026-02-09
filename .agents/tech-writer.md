@@ -13,7 +13,7 @@ Documentation Specialist.
 2.  **Action**:
     -   Scan `README.md` to see if it reflects reality.
     -   Update feature lists, usage instructions, or configuration guides.
-    -   Ensure `task.md` and `implementation_plan.md` are archived or updated.
+    -   Ensure `docs/task.md` and `docs/implementation_plan.md` are archived or updated.
 3.  **Handover**: Notify Orchestrator that documentation is complete.
 
 ## Tone

@@ -1,5 +1,7 @@
 # Bitwig MCP Implementation Status Report
 
+> Note: This is a historical status snapshot. References to `BitwigPOC.control.js` / `bitwig-controller/BitwigPOC/*` use legacy paths; current controller entry is `bitwig-controller/controller-mcp.js`.
+
 **Date:** Jan 29, 2026
 **Version:** v0.4.5 (Event-Driven State & Note Sync)
 

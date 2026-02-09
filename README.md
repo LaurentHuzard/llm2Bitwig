@@ -6,7 +6,7 @@
 The goal of this project is to demonstrate how an AI Agent can control a Digital Audio Workstation (DAW) like Bitwig Studio. By exposing Bitwig's API through an MCP Server, Large Language Models (LLMs) can directly interact with the music production environment to perform tasks like:
 - Creating tracks
 - Controlling transport (Play, Stop, Restart)
-- *(Future)* Modifying devices, arranging clips, and mixing.
+- Managing devices, arranging clips, and mixing.
 
 ## 🏗 Architecture
 The project consists of two main components communicating over a local TCP socket:
@@ -14,9 +14,9 @@ The project consists of two main components communicating over a local TCP socke
 1.  **MCP Server (`server-mcp/index.ts`, build output in `dist/index.js`)**
     - A Node.js application that implements the Model Context Protocol.
     - It listens for instructions from an MCP Client (like an AI Assistant).
-    - It acts as a TCP Server on port `8888` to relay commands to Bitwig.
+    - It acts as a TCP client and connects to Bitwig on port `8888` to relay commands.
 
-2.  **Bitwig Controller Script (`BitwigPOC.control.ts`, compiled to `.control.js`)**
+2.  **Bitwig Controller Script (`bitwig-controller/controller-mcp.ts`, bundled to `bitwig-controller/controller-mcp.js`)**
     - A Java/JavaScript extension running inside Bitwig Studio.
     - It connects to the MCP Server via TCP.
     - It executes the API commands (e.g., `application.createInstrumentTrack()`) received from the server.
@@ -91,17 +91,18 @@ npm install
 You need to install the controller script so Bitwig can load it.
 
 **Option A: Symbol Link (Recommended for development)**
-Symlink the `bitwig-controller/BitwigPOC` folder into your Bitwig Controller Scripts directory.
+Create a controller script folder in your Bitwig Controller Scripts directory (for example `BitwigPOC`) and place `controller-mcp.js` in that folder.
 *Likely location on Linux/Mac:* `~/Documents/Bitwig Studio/Controller Scripts/`
 *Likely location on Windows:* `%USERPROFILE%\Documents\Bitwig Studio\Controller Scripts\`
 
 ```bash
 # Example for Linux/Mac
-ln -s "$(pwd)/bitwig-controller/BitwigPOC" "$HOME/Documents/Bitwig Studio/Controller Scripts/"
+mkdir -p "$HOME/Documents/Bitwig Studio/Controller Scripts/BitwigPOC"
+cp "$(pwd)/bitwig-controller/controller-mcp.js" "$HOME/Documents/Bitwig Studio/Controller Scripts/BitwigPOC/controller-mcp.js"
 ```
 
 **Option B: Manual Copy**
-Copy the `bitwig-controller/BitwigPOC` folder into your Bitwig Controller Scripts directory.
+Copy `bitwig-controller/controller-mcp.js` into a controller folder under your Bitwig Controller Scripts directory.
 
 ### 4. Enable in Bitwig
 1. Open Bitwig Studio.
@@ -113,11 +114,21 @@ Copy the `bitwig-controller/BitwigPOC` folder into your Bitwig Controller Script
 ## 💻 Usage
 
 ### 1. Start the MCP Server
-Run the Node.js server. It will start listening on the standard input/output for MCP and on TCP port 19561 for Bitwig.
+Run the Node.js server. It listens on standard input/output for MCP, connects to Bitwig via TCP on port `8888`, and opens a WebSocket server on port `2624` by default (configurable via `BITWIG_MCP_WS_PORT`).
 
 ```bash
 node dist/index.js
 ```
+
+### Controller Build (Bitwig)
+
+Any change in `bitwig-controller/**/*.ts` needs rebuilding so Bitwig can load the single bundled script at `bitwig-controller/controller-mcp.js`:
+
+```bash
+pnpm run build:controller
+```
+
+Running this command compiles `bitwig-controller/controller-mcp.ts` into one IIFE bundle with all modules inlined and overwrites `bitwig-controller/controller-mcp.js`, which is the file you drop into Bitwig's Controller Scripts directory.
 
 ### 2. Connect your AI Agent
 Configure your MCP Client (e.g., Claude Desktop, Zed, or other MCP-compliant tools) to run the command above.
@@ -137,4 +148,4 @@ For testing the MCP server with an actual LLM agent flow (simulated via CLI), us
 ./tests/test-env/run-llm-test.sh
 ```
 
-See the [Test Environment Documentation](test-env/README.md) for more details and example prompts.
+See the [Test Environment Documentation](tests/test-env/README.md) for more details and example prompts.

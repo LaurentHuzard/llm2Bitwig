@@ -1,5 +1,7 @@
 # Bitwig Controller Architecture
 
+> Note: This architecture doc is historical. It references legacy controller names/paths (`BitwigPOC.control.js`, `bitwig-controller/BitwigPOC/*`); current bundled controller file is `bitwig-controller/controller-mcp.js`.
+
 This document describes the internal architecture of the **Bitwig Controller Script** (`BitwigPOC.control.js`) which serves as the bridge between the Bitwig API and the MCP Server.
 
 ## 🏗 Modular Design

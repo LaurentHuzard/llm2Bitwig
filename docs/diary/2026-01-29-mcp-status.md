@@ -1,5 +1,7 @@
 # MCP status and next steps (2026-01-29)
 
+> Note: This diary entry is historical and may reference legacy controller paths (`BitwigPOC.control.js`, `bitwig-controller/BitwigPOC/*`). Current bundled controller file is `bitwig-controller/controller-mcp.js`.
+
 ## What just broke
 - Crash was caused by calling `setIndication` on `.value()` (a `RemappableRangedValueProxy`), which does not expose that method.
 - Fix: call `setIndication` on the `Parameter` itself.

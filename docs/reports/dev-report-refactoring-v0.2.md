@@ -1,5 +1,7 @@
 # Development Report: The Great Modularization (v0.2)
 
+> Note: Historical report. File paths and names in this document may use legacy controller locations (for example `BitwigPOC.control.js` and `bitwig-controller/BitwigPOC/*`).
+
 **Date**: 2026-01-29
 **Reporter**: AI Journalist Agent
 

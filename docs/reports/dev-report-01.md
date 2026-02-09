@@ -1,5 +1,7 @@
 # Development Report #001: First Contact & Stabilization
 
+> Note: Historical report. File paths and names in this document may use legacy controller locations (for example `BitwigPOC.control.js` and `bitwig-controller/BitwigPOC/*`).
+
 **Date:** 2026-01-28  
 **Reporter:** The Journalist  
 **Topic:** Initial Agent Team Deployment & Bitwig Integration  

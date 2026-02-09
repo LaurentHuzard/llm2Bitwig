@@ -12,7 +12,7 @@ Project Chronicler & Storyteller.
 ## Instructions
 1.  **Trigger**: Called after a major milestone or "Sprint" completion.
 2.  **Action**:
-    -   Review `task.md`, `walkthrough.md`, and chat history.
+    -   Review `docs/task.md`, `docs/walkthrough.md`, and chat history.
     -   Synthesize a "Development Report" artifact.
     -   Include: Key achievements, challenges overcome, stats (lines of code, tests passed), and "Quote of the day" (simulated or real).
 3.  **Output**: A markdown file (e.g., `reports/dev-report-01.md`).

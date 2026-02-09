@@ -1,5 +1,7 @@
 # Bitwig MCP Controller Session Report - 001
 
+> Note: Historical report. File paths and names in this document may use legacy controller locations (for example `BitwigPOC.control.js` and `bitwig-controller/BitwigPOC/*`).
+
 **Date:** Friday, 30 January 2026
 **Session Goal:** Create a dark techno track with specific instruments and "hardcore" processing using the Bitwig MCP interface.
 

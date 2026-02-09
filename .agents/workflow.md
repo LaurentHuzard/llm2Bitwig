@@ -6,12 +6,12 @@ This document defines the standard operating procedures for the Bitwig MCP Agent
 
 1.  **User Request** -> **Orchestrator**
     -   Orchestrator analyzes the request.
-    -   Updates `task.md`.
+    -   Updates `docs/task.md`.
 
 2.  **Phase 1: Planning**
     -   **Orchestrator** -> **Planner**
-    -   **Planner** checks `roadmap.md` and feature inventory.
-    -   **Planner** creates `implementation_plan.md`.
+    -   **Planner** checks `docs/bitwig-mcp-controller-roadmap.md` and feature inventory.
+    -   **Planner** creates `docs/implementation_plan.md`.
     -   **Planner** requests User Review (via Orchestrator).
 
 3.  **Phase 2: Implementation**
@@ -24,7 +24,7 @@ This document defines the standard operating procedures for the Bitwig MCP Agent
     -   **Orchestrator** -> **Tester**
     -   **Tester** runs scripts.
     -   If Fail -> Loop back to **Implementer**.
-    -   If Pass -> **Tester** creates `walkthrough.md`.
+    -   If Pass -> **Tester** creates `docs/walkthrough.md`.
 
 5.  **Phase 4: Documentation & Maintenance**
     -   **Orchestrator** -> **Tech Writer** (updates Docs).

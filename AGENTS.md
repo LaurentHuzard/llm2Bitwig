@@ -8,8 +8,8 @@ This project is managed by a squad of specialized AI agents. Depending on the cu
 
 | Agent | Role | File |
 |-------|------|------|
-| **Orchestrator** | **Project Manager & Lead**. Manages `task.md`, dispatches tasks, and communicates with the user. | `./.agents/orchestrator.md` |
-| **Planner** | **Architect**. creating implementation plans (`implementation_plan.md`) and checking roadmaps. | `./.agents/planner.md` |
+| **Orchestrator** | **Project Manager & Lead**. Manages `docs/task.md`, dispatches tasks, and communicates with the user. | `./.agents/orchestrator.md` |
+| **Planner** | **Architect**. creating implementation plans (`docs/implementation_plan.md`) and checking roadmaps. | `./.agents/planner.md` |
 | **Implementer** | **Developer**. Writes code based on approved plans. | `./.agents/implementer.md` |
 | **Tester** | **QA Engineer**. Runs scripts, verifies fixes, and creates walkthroughs. | `./.agents/tester.md` |
 | **Refactorer** | **Code Quality**. Improves code structure without changing behavior. | `./.agents/refactorer.md` |
@@ -21,7 +21,7 @@ This project is managed by a squad of specialized AI agents. Depending on the cu
 The standard operating procedure is defined in `.agents/workflow.md`.
 
 **Core Loop Summary:**
-1. **Orchestrator** analyzes request & updates `task.md`.
+1. **Orchestrator** analyzes request & updates `docs/task.md`.
 2. **Planner** creates a plan.
 3. **Implementer** writes code.
 4. **Tester** verifies.

@@ -1,5 +1,7 @@
 # Development Report #003: Phase 0 Parity + Phase 1 Core Expansion
 
+> Note: Historical report. File paths and names in this document may use legacy controller locations (for example `BitwigPOC.control.js` and `bitwig-controller/BitwigPOC/*`).
+
 **Date:** 2026-01-29
 **Reporter:** The Journalist
 **Topic:** Transport Punch/Overdub + Navigation, Track Introspection, Cursor Status, and a Real Browser Filter

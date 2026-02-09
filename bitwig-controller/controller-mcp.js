@@ -1,183 +1,1203 @@
 "use strict";
-// @ts-nocheck
-loadAPI(25);
-host.defineController("BitwigPOC", "BitwigPOC", "0.2", "761be710-90df-4577-8094-01314323214c", "Laurent Huzard");
-// Load Modules
-load("modules/Transport.js");
-load("modules/TrackBank.js");
-load("modules/SceneBank.js");
-load("modules/Mixer.js");
-load("modules/Cursor.js");
-load("modules/Application.js");
-load("modules/Device.js");
-load("modules/Clip.js");
-load("modules/Browser.js");
-var modules = [];
-var isConnected = false;
-var activeConnection = null;
-function init() {
-    // Instantiate Modules
-    // Note: These constructors are defined in the loaded files globally
-    modules.push(new TransportModule(host));
-    var trackBankModule = new TrackBankModule(host);
+(() => {
+  // bitwig-controller/modules/Application.ts
+  var ApplicationModule = class {
+    constructor(host2) {
+      this.application = host2.createApplication();
+    }
+    handleRequest(method, _params) {
+      switch (method) {
+        case "application.createInstrumentTrack":
+          this.application.createInstrumentTrack(-1);
+          return "OK";
+        case "application.createAudioTrack":
+          this.application.createAudioTrack(-1);
+          return "OK";
+        case "application.createEffectTrack":
+          this.application.createEffectTrack(-1);
+          return "OK";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Browser.ts
+  var BrowserModule = class {
+    constructor(host2) {
+      this.popupBrowser = host2.createPopupBrowser();
+      this.popupBrowser.exists().markInterested();
+      this.popupBrowser.resultsColumn().createCursorItem();
+      this.resultBank = this.popupBrowser.resultsColumn().createItemBank(100);
+      for (let i = 0; i < 100; i++) {
+        this.resultBank.getItemAt(i).name().markInterested();
+      }
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "browser.get_status":
+          return {
+            exists: this.popupBrowser.exists().get(),
+            filter: null
+          };
+        case "browser.list_results": {
+          const items = [];
+          for (let i = 0; i < 100; i++) {
+            const item = this.resultBank.getItemAt(i);
+            const name = item.name().get();
+            if (name && name.length > 0) {
+              items.push({ index: i, name });
+            }
+          }
+          return items;
+        }
+        case "browser.select_result":
+          if (params && params[0] !== void 0) {
+            const index = params[0];
+            const item = this.resultBank.getItemAt(index);
+            if (item) {
+              item.isSelected().set(true);
+              return "OK";
+            }
+            return `Item not found at index ${index}`;
+          }
+          return "Missing index parameter";
+        case "browser.set_filter":
+          if (params && params[0] !== void 0) {
+            this.popupBrowser.smartCollectionColumn().getWildcardFilter().set(params[0]);
+            return "OK";
+          }
+          return "Missing filter text parameter";
+        case "browser.commit":
+          this.popupBrowser.commit();
+          return "OK";
+        case "browser.cancel":
+          this.popupBrowser.cancel();
+          return "OK";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Clip.ts
+  var ClipModule = class {
+    constructor(host2, sendEvent) {
+      this.cursorClip = host2.createCursorClip(16, 128);
+      this.sendEvent = sendEvent;
+      this.cursorClip.getLoopLength().markInterested();
+      this.cursorClip.getLoopStart().markInterested();
+      this.cursorClip.getPlayStart().markInterested();
+      this.cursorClip.getPlayStop().markInterested();
+      this.cursorClip.playingStep().markInterested();
+      this.cursorClip.addStepDataObserver((x, y, state) => {
+        this.sendEvent("clip.step_update", { x, y, state });
+      });
+      this.cursorClip.addPlayingStepObserver((step) => {
+        this.sendEvent("clip.play_step", { step });
+      });
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "clip.get_info":
+          return {
+            loopLength: this.cursorClip.getLoopLength().get(),
+            loopStart: this.cursorClip.getLoopStart().get(),
+            playStart: this.cursorClip.getPlayStart().get(),
+            playStop: this.cursorClip.getPlayStop().get(),
+            playingStep: this.cursorClip.playingStep().get()
+          };
+        case "clip.set_note":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0 && params[3] !== void 0) {
+            const step = params[0];
+            const pitch = params[1];
+            const velocity = params[2];
+            const duration = params[3];
+            this.cursorClip.setStep(0, step, pitch, velocity, duration);
+            return "OK";
+          }
+          throw "Missing parameters (step, pitch, velocity, duration)";
+        case "clip.clear_note":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const step = params[0];
+            const pitch = params[1];
+            this.cursorClip.clearStep(0, step, pitch);
+            return "OK";
+          }
+          throw "Missing parameters (step, pitch)";
+        case "clip.toggle_note":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const step = params[0];
+            const pitch = params[1];
+            const velocity = params[2] || 1;
+            this.cursorClip.toggleStep(step, pitch, velocity);
+            return "OK";
+          }
+          throw "Missing parameters (step, pitch)";
+        case "clip.get_notes":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            return {
+              message: "Note reading requires observer pattern - use clip.get_info for now",
+              startStep: params[0],
+              stepCount: params[1],
+              pitch: params[2]
+            };
+          }
+          throw "Missing parameters (startStep, stepCount, pitch)";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Cursor.ts
+  var CursorModule = class {
+    constructor(host2, sendEvent) {
+      this.sendEvent = sendEvent;
+      this.cursorTrack = host2.createCursorTrack("MCP_CURSOR", "Cursor Track", 0, 0, true);
+      this.cursorTrack.volume().markInterested();
+      this.cursorTrack.pan().markInterested();
+      this.cursorTrack.mute().markInterested();
+      this.cursorTrack.solo().markInterested();
+      this.cursorTrack.arm().markInterested();
+      this.cursorTrack.name().markInterested();
+      this.cursorTrack.color().markInterested();
+      this.cursorTrack.exists().markInterested();
+      this.cursorTrack.trackType().markInterested();
+      this.cursorTrack.position().markInterested();
+      this.cursorDevice = this.cursorTrack.createCursorDevice(
+        "MCP_DEVICE",
+        "Cursor Device",
+        0,
+        CursorDeviceFollowMode.FOLLOW_SELECTION
+      );
+      this.cursorDevice.name().markInterested();
+      this.cursorDevice.isWindowOpen().markInterested();
+      this.cursorDevice.isExpanded().markInterested();
+      this.cursorDevice.isEnabled().markInterested();
+      this.cursorDevice.exists().markInterested();
+      this.cursorDevice.position().markInterested();
+      this.cursorClip = this.cursorTrack.createLauncherCursorClip("MCP_CLIP", "Cursor Clip", 16, 128);
+      this.cursorClip.exists().markInterested();
+      this.cursorClip.getLoopLength().markInterested();
+      this.cursorClip.getLoopStart().markInterested();
+      this.cursorClip.getPlayStart().markInterested();
+      this.cursorClip.getPlayStop().markInterested();
+      this.cursorClip.color().markInterested();
+      this.remoteControlsBank = this.cursorDevice.createCursorRemoteControlsPage(8);
+      for (let i = 0; i < 8; i++) {
+        const param = this.remoteControlsBank.getParameter(i);
+        param.name().markInterested();
+        param.value().markInterested();
+        param.setIndication(true);
+        param.name().addValueObserver((name) => {
+          this.sendEvent("device.remote_control.update", { index: i, name });
+        });
+        param.value().addValueObserver((value) => {
+          this.sendEvent("device.remote_control.update", { index: i, value });
+        });
+      }
+      this.cursorTrack.name().addValueObserver((val) => {
+        this.sendEvent("track.selected.update", { name: val });
+      });
+      this.cursorTrack.volume().addValueObserver((val) => {
+        this.sendEvent("track.selected.update", { volume: val });
+      });
+      this.cursorTrack.pan().addValueObserver((val) => {
+        this.sendEvent("track.selected.update", { pan: val });
+      });
+      this.cursorTrack.mute().addValueObserver((val) => {
+        this.sendEvent("track.selected.update", { mute: val });
+      });
+      this.cursorTrack.solo().addValueObserver((val) => {
+        this.sendEvent("track.selected.update", { solo: val });
+      });
+      this.cursorTrack.arm().addValueObserver((val) => {
+        this.sendEvent("track.selected.update", { arm: val });
+      });
+      this.cursorDevice.name().addValueObserver((val) => {
+        this.sendEvent("device.selected.update", { name: val });
+      });
+      this.cursorDevice.isWindowOpen().addValueObserver((val) => {
+        this.sendEvent("device.selected.update", { isWindowOpen: val });
+      });
+      this.cursorDevice.isExpanded().addValueObserver((val) => {
+        this.sendEvent("device.selected.update", { isExpanded: val });
+      });
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "track.selected.get_status":
+          return {
+            name: this.cursorTrack.name().get(),
+            volume: this.cursorTrack.volume().get(),
+            pan: this.cursorTrack.pan().get(),
+            mute: this.cursorTrack.mute().get(),
+            solo: this.cursorTrack.solo().get(),
+            arm: this.cursorTrack.arm().get()
+          };
+        case "track.selected.volume":
+          if (params && params[0] !== void 0) {
+            this.cursorTrack.volume().set(params[0]);
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "track.selected.pan":
+          if (params && params[0] !== void 0) {
+            this.cursorTrack.pan().set(params[0]);
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "track.selected.mute":
+          if (params && params[0] !== void 0) {
+            this.cursorTrack.mute().set(params[0]);
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "track.selected.solo":
+          if (params && params[0] !== void 0) {
+            this.cursorTrack.solo().set(params[0]);
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "track.selected.arm":
+          if (params && params[0] !== void 0) {
+            this.cursorTrack.arm().set(params[0]);
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "device.get_status":
+          return {
+            name: this.cursorDevice.name().get(),
+            isWindowOpen: this.cursorDevice.isWindowOpen().get(),
+            isExpanded: this.cursorDevice.isExpanded().get()
+          };
+        case "device.toggle_window":
+          this.cursorDevice.isWindowOpen().toggle();
+          return "OK";
+        case "device.toggle_expanded":
+          this.cursorDevice.isExpanded().toggle();
+          return "OK";
+        case "device.get_remote_controls": {
+          const controls = [];
+          for (let i = 0; i < 8; i++) {
+            const param = this.remoteControlsBank.getParameter(i);
+            controls.push({
+              index: i,
+              name: param.name().get(),
+              value: param.value().get()
+            });
+          }
+          return controls;
+        }
+        case "device.set_remote_control":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.remoteControlsBank.getParameter(params[0]).value().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (index, value)";
+        case "device.page_next":
+          this.remoteControlsBank.selectNextPage(true);
+          return "OK";
+        case "device.page_previous":
+          this.remoteControlsBank.selectPreviousPage(true);
+          return "OK";
+        case "device.select_next":
+          this.cursorDevice.selectNext();
+          return "OK";
+        case "device.select_previous":
+          this.cursorDevice.selectPrevious();
+          return "OK";
+        case "device.select_first":
+          this.cursorDevice.selectFirst();
+          return "OK";
+        case "device.select_last":
+          this.cursorDevice.selectLast();
+          return "OK";
+        case "device.browse_insert_before":
+          this.cursorDevice.browseToInsertBeforeDevice();
+          return "OK";
+        case "device.browse_insert_after":
+          this.cursorDevice.browseToInsertAfterDevice();
+          return "OK";
+        case "device.browse_replace":
+          this.cursorDevice.browseToReplaceDevice();
+          return "OK";
+        case "cursor_track.get_status":
+          return {
+            exists: this.cursorTrack.exists().get(),
+            name: this.cursorTrack.name().get(),
+            type: this.cursorTrack.trackType().get(),
+            position: this.cursorTrack.position().get(),
+            volume: this.cursorTrack.volume().get(),
+            pan: this.cursorTrack.pan().get(),
+            mute: this.cursorTrack.mute().get(),
+            solo: this.cursorTrack.solo().get(),
+            arm: this.cursorTrack.arm().get(),
+            color: {
+              red: this.cursorTrack.color().red(),
+              green: this.cursorTrack.color().green(),
+              blue: this.cursorTrack.color().blue()
+            }
+          };
+        case "cursor_device.get_status":
+          return {
+            exists: this.cursorDevice.exists().get(),
+            name: this.cursorDevice.name().get(),
+            position: this.cursorDevice.position().get(),
+            isEnabled: this.cursorDevice.isEnabled().get(),
+            isWindowOpen: this.cursorDevice.isWindowOpen().get(),
+            isExpanded: this.cursorDevice.isExpanded().get()
+          };
+        case "cursor_clip.get_status":
+          return {
+            exists: this.cursorClip.exists().get(),
+            loopLength: this.cursorClip.getLoopLength().get(),
+            loopStart: this.cursorClip.getLoopStart().get(),
+            playStart: this.cursorClip.getPlayStart().get(),
+            playStop: this.cursorClip.getPlayStop().get(),
+            color: {
+              red: this.cursorClip.color().red(),
+              green: this.cursorClip.color().green(),
+              blue: this.cursorClip.color().blue()
+            }
+          };
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Device.ts
+  var DeviceModule = class {
+    constructor(trackBank) {
+      this.deviceBanks = [];
+      this.trackBank = trackBank;
+      for (let i = 0; i < 8; i++) {
+        const track = this.trackBank.getItemAt(i);
+        const deviceBank = track.createDeviceBank(8);
+        for (let j = 0; j < 8; j++) {
+          const device = deviceBank.getItemAt(j);
+          device.name().markInterested();
+          device.isEnabled().markInterested();
+          device.exists().markInterested();
+        }
+        this.deviceBanks.push(deviceBank);
+      }
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "device.list":
+          if (params && params[0] !== void 0) {
+            const trackIndex = params[0];
+            if (trackIndex < 0 || trackIndex >= 8) throw "Track index out of range (0-7)";
+            const devices = [];
+            const deviceBank = this.deviceBanks[trackIndex];
+            for (let i = 0; i < 8; i++) {
+              const device = deviceBank.getItemAt(i);
+              if (device.exists().get()) {
+                devices.push({
+                  index: i,
+                  name: device.name().get(),
+                  enabled: device.isEnabled().get()
+                });
+              }
+            }
+            return devices;
+          }
+          throw "Missing trackIndex parameter";
+        case "device.bypass":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            const trackIndex = params[0];
+            const deviceIndex = params[1];
+            const state = params[2];
+            const device = this.deviceBanks[trackIndex].getItemAt(deviceIndex);
+            device.isEnabled().set(!state);
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, deviceIndex, bypassState)";
+        case "device.delete":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const trackIndex = params[0];
+            const deviceIndex = params[1];
+            this.deviceBanks[trackIndex].getItemAt(deviceIndex).deleteObject();
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, deviceIndex)";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Mixer.ts
+  var MixerModule = class {
+    constructor(host2) {
+      this.masterTrack = host2.createMasterTrack(0);
+      this.masterTrack.volume().markInterested();
+      this.masterTrack.pan().markInterested();
+      this.effectTrackBank = host2.createEffectTrackBank(8, 2, 8);
+      for (let i = 0; i < 8; i++) {
+        const track = this.effectTrackBank.getItemAt(i);
+        track.volume().markInterested();
+        track.pan().markInterested();
+        track.mute().markInterested();
+        track.solo().markInterested();
+        track.name().markInterested();
+      }
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "mixer.master.get_volume":
+          return this.masterTrack.volume().get();
+        case "mixer.master.set_volume":
+          if (params && params[0] !== void 0) {
+            this.masterTrack.volume().set(params[0]);
+            return "OK";
+          }
+          throw "Missing volume parameter";
+        case "mixer.return.list": {
+          const tracks = [];
+          for (let i = 0; i < 8; i++) {
+            const track = this.effectTrackBank.getItemAt(i);
+            tracks.push({
+              index: i,
+              name: track.name().get(),
+              volume: track.volume().get(),
+              pan: track.pan().get(),
+              mute: track.mute().get(),
+              solo: track.solo().get()
+            });
+          }
+          return tracks;
+        }
+        case "mixer.return.volume":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.effectTrackBank.getItemAt(params[0]).volume().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (index, value)";
+        case "mixer.return.pan":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.effectTrackBank.getItemAt(params[0]).pan().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (index, value)";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/SceneBank.ts
+  var SceneBankModule = class {
+    constructor(host2) {
+      this.sceneBank = host2.createSceneBank(8);
+      this.project = host2.getProject();
+      for (let i = 0; i < 8; i++) {
+        const scene = this.sceneBank.getScene(i);
+        scene.name().markInterested();
+        scene.sceneIndex().markInterested();
+      }
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "scene.launch":
+          if (params && params[0] !== void 0) {
+            this.sceneBank.getScene(params[0]).launch();
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "scene.select":
+          if (params && params[0] !== void 0) {
+            this.sceneBank.getScene(params[0]).selectInEditor();
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "scene.create_from_playing":
+          this.project.createSceneFromPlayingLauncherClips();
+          return "OK";
+        case "scene.list": {
+          const scenes = [];
+          for (let i = 0; i < 8; i++) {
+            const scene = this.sceneBank.getScene(i);
+            scenes.push({
+              index: i,
+              name: scene.name().get()
+            });
+          }
+          return scenes;
+        }
+        case "scene.create":
+          this.sceneBank.createScene();
+          return "OK";
+        case "scene.delete":
+          if (params && params[0] !== void 0) {
+            this.sceneBank.getScene(params[0]).deleteObject();
+            return "OK";
+          }
+          throw "Missing sceneIndex parameter";
+        case "scene.rename":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.sceneBank.getScene(params[0]).name().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (sceneIndex, name)";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/TrackBank.ts
+  var TrackBankModule = class {
+    constructor(host2, sendEvent) {
+      this.trackBank = host2.createMainTrackBank(8, 2, 8);
+      this.trackBank.followCursorTrack(host2.createCursorTrack(0, 0));
+      this.sendEvent = sendEvent;
+      for (let i = 0; i < 8; i++) {
+        this.initTrack(i);
+      }
+    }
+    initTrack(index) {
+      const track = this.trackBank.getItemAt(index);
+      track.volume().markInterested();
+      track.pan().markInterested();
+      track.mute().markInterested();
+      track.solo().markInterested();
+      track.arm().markInterested();
+      track.name().markInterested();
+      track.color().markInterested();
+      track.exists().markInterested();
+      track.trackType().markInterested();
+      track.position().markInterested();
+      track.isGroup().markInterested();
+      track.volume().addValueObserver(101, (val) => {
+        this.sendEvent("track.update", { index, volume: val });
+      });
+      track.pan().addValueObserver(101, (val) => {
+        this.sendEvent("track.update", { index, pan: val });
+      });
+      track.mute().addValueObserver((val) => {
+        this.sendEvent("track.update", { index, mute: val });
+      });
+      track.solo().addValueObserver((val) => {
+        this.sendEvent("track.update", { index, solo: val });
+      });
+      track.arm().addValueObserver((val) => {
+        this.sendEvent("track.update", { index, arm: val });
+      });
+      track.name().addValueObserver((val) => {
+        this.sendEvent("track.update", { index, name: val });
+      });
+      track.color().addValueObserver((red, green, blue) => {
+        this.sendEvent("track.update", { index, color: { red, green, blue } });
+      });
+      const sendBank = track.sendBank();
+      for (let k = 0; k < 2; k++) {
+        sendBank.getItemAt(k).markInterested();
+      }
+      const clipLauncher = track.clipLauncherSlotBank();
+      for (let j = 0; j < 8; j++) {
+        const slot = clipLauncher.getItemAt(j);
+        slot.hasContent().markInterested();
+        slot.isPlaying().markInterested();
+        slot.isRecording().markInterested();
+        slot.isPlaybackQueued().markInterested();
+        slot.color().markInterested();
+        slot.name().markInterested();
+        slot.hasContent().addValueObserver((val) => {
+          this.sendEvent("clip_launcher.slot_update", { trackIndex: index, sceneIndex: j, hasContent: val });
+        });
+        slot.isPlaying().addValueObserver((val) => {
+          this.sendEvent("clip_launcher.slot_update", { trackIndex: index, sceneIndex: j, isPlaying: val });
+        });
+        slot.isRecording().addValueObserver((val) => {
+          this.sendEvent("clip_launcher.slot_update", { trackIndex: index, sceneIndex: j, isRecording: val });
+        });
+        slot.isPlaybackQueued().addValueObserver((val) => {
+          this.sendEvent("clip_launcher.slot_update", { trackIndex: index, sceneIndex: j, isPlaybackQueued: val });
+        });
+        slot.color().addValueObserver((r, g, b) => {
+          this.sendEvent("clip_launcher.slot_update", { trackIndex: index, sceneIndex: j, color: { r, g, b } });
+        });
+        slot.name().addValueObserver((val) => {
+          this.sendEvent("clip_launcher.slot_update", { trackIndex: index, sceneIndex: j, name: val });
+        });
+      }
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "track.bank.get_status": {
+          const tracks = [];
+          for (let i = 0; i < 8; i++) {
+            const track = this.trackBank.getItemAt(i);
+            tracks.push({
+              index: i,
+              name: track.name().get(),
+              volume: track.volume().get(),
+              pan: track.pan().get(),
+              mute: track.mute().get(),
+              solo: track.solo().get(),
+              arm: track.arm().get(),
+              color: {
+                red: track.color().red(),
+                green: track.color().green(),
+                blue: track.color().blue()
+              }
+            });
+          }
+          return tracks;
+        }
+        case "track.bank.volume":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).volume().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.bank.pan":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).pan().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.bank.mute":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).mute().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.bank.solo":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).solo().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.bank.select":
+          if (params && params[0] !== void 0) {
+            this.trackBank.getItemAt(params[0]).selectInMixer();
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.delete":
+          if (params && params[0] !== void 0) {
+            this.trackBank.getItemAt(params[0]).deleteObject();
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "track.rename":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).name().set(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.duplicate":
+          if (params && params[0] !== void 0) {
+            this.trackBank.getItemAt(params[0]).duplicate();
+            return "OK";
+          }
+          throw "Missing parameter";
+        case "track.set_color":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0 && params[3] !== void 0) {
+            this.trackBank.getItemAt(params[0]).color().set(
+              params[1],
+              params[2],
+              params[3]
+            );
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "clip.launch":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().getItemAt(params[1]).launch();
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "clip.record":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().getItemAt(params[1]).record();
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "clip.stop":
+          if (params && params[0] !== void 0) {
+            this.trackBank.getItemAt(params[0]).stop();
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "clip.duplicate":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().duplicateClip(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, slotIndex)";
+        case "clip.select_slot":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().select(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, slotIndex)";
+        case "clip.create":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().getItemAt(params[1]).createEmptyClip(params[2]);
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, slotIndex, length)";
+        case "clip.delete":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().deleteClip(params[1]);
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, slotIndex)";
+        case "clip.browse_insert":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.trackBank.getItemAt(params[0]).clipLauncherSlotBank().getItemAt(params[1]).browseToInsertClip();
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, slotIndex)";
+        case "clip.get_status":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const trackIdx = params[0];
+            const sceneIdx = params[1];
+            const clipSlot = this.trackBank.getItemAt(trackIdx).clipLauncherSlotBank().getItemAt(sceneIdx);
+            return {
+              hasContent: clipSlot.hasContent().get(),
+              isPlaying: clipSlot.isPlaying().get(),
+              isRecording: clipSlot.isRecording().get(),
+              isPlaybackQueued: clipSlot.isPlaybackQueued().get()
+            };
+          }
+          throw "Missing parameters (trackIndex, sceneIndex)";
+        case "clip.get_grid": {
+          const grid = [];
+          for (let t = 0; t < 8; t++) {
+            const trackSlots = [];
+            const clipLauncher = this.trackBank.getItemAt(t).clipLauncherSlotBank();
+            for (let s = 0; s < 8; s++) {
+              const slot = clipLauncher.getItemAt(s);
+              trackSlots.push({
+                trackIndex: t,
+                sceneIndex: s,
+                hasContent: slot.hasContent().get(),
+                isPlaying: slot.isPlaying().get(),
+                isRecording: slot.isRecording().get(),
+                isPlaybackQueued: slot.isPlaybackQueued().get(),
+                name: slot.name().get()
+              });
+            }
+            grid.push(trackSlots);
+          }
+          return grid;
+        }
+        case "clip.set_color":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0 && params[3] !== void 0 && params[4] !== void 0) {
+            const trackIdx = params[0];
+            const sceneIdx = params[1];
+            const red = params[2];
+            const green = params[3];
+            const blue = params[4];
+            this.trackBank.getItemAt(trackIdx).clipLauncherSlotBank().getItemAt(sceneIdx).color().set(red, green, blue);
+            return "OK";
+          }
+          throw "Missing parameters (trackIndex, sceneIndex, r, g, b)";
+        case "clip.get_color":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const trackIdx = params[0];
+            const sceneIdx = params[1];
+            const clipColor = this.trackBank.getItemAt(trackIdx).clipLauncherSlotBank().getItemAt(sceneIdx).color();
+            return {
+              r: clipColor.red(),
+              g: clipColor.green(),
+              b: clipColor.blue()
+            };
+          }
+          throw "Missing parameters (trackIndex, sceneIndex)";
+        case "mixer.track.get_send":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            return this.trackBank.getItemAt(params[0]).sendBank().getItemAt(params[1]).get();
+          }
+          throw "Missing parameters";
+        case "mixer.track.set_send":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            this.trackBank.getItemAt(params[0]).sendBank().getItemAt(params[1]).set(params[2]);
+            return "OK";
+          }
+          throw "Missing parameters";
+        case "track.list": {
+          const allTracks = [];
+          for (let i = 0; i < 8; i++) {
+            const track = this.trackBank.getItemAt(i);
+            if (track.exists().get()) {
+              allTracks.push({
+                index: i,
+                name: track.name().get(),
+                type: track.trackType().get(),
+                position: track.position().get(),
+                isGroup: track.isGroup().get(),
+                color: {
+                  red: track.color().red(),
+                  green: track.color().green(),
+                  blue: track.color().blue()
+                }
+              });
+            }
+          }
+          return allTracks;
+        }
+        case "track.get_info":
+          if (params && params[0] !== void 0) {
+            const track = this.trackBank.getItemAt(params[0]);
+            return {
+              index: params[0],
+              exists: track.exists().get(),
+              name: track.name().get(),
+              type: track.trackType().get(),
+              position: track.position().get(),
+              isGroup: track.isGroup().get(),
+              volume: track.volume().get(),
+              pan: track.pan().get(),
+              mute: track.mute().get(),
+              solo: track.solo().get(),
+              arm: track.arm().get(),
+              color: {
+                red: track.color().red(),
+                green: track.color().green(),
+                blue: track.color().blue()
+              }
+            };
+          }
+          throw "Missing track index parameter";
+        case "track.scroll_into_view":
+          if (params && params[0] !== void 0) {
+            const track = this.trackBank.getItemAt(params[0]);
+            track.makeVisibleInArranger();
+            track.makeVisibleInMixer();
+            return "OK";
+          }
+          throw "Missing track index parameter";
+        case "track.bank.scroll_forward":
+          this.trackBank.scrollForwards();
+          return "OK";
+        case "track.bank.scroll_backward":
+          this.trackBank.scrollBackwards();
+          return "OK";
+        case "track.bank.scroll_to_position":
+          if (params && params[0] !== void 0) {
+            this.trackBank.scrollPosition().set(params[0]);
+            return "OK";
+          }
+          throw "Missing position parameter";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Transport.ts
+  var TransportModule = class {
+    constructor(host2, sendEvent) {
+      this.transport = host2.createTransport();
+      this.sendEvent = sendEvent;
+      this.transport.tempo().value().markInterested();
+      this.transport.getPosition().markInterested();
+      this.transport.isPlaying().markInterested();
+      this.transport.isArrangerRecordEnabled().markInterested();
+      this.transport.isArrangerLoopEnabled().markInterested();
+      this.transport.getInPosition().markInterested();
+      this.transport.getOutPosition().markInterested();
+      this.transport.isMetronomeEnabled().markInterested();
+      this.transport.timeSignature().numerator().markInterested();
+      this.transport.timeSignature().denominator().markInterested();
+      this.transport.isPunchInEnabled().markInterested();
+      this.transport.isPunchOutEnabled().markInterested();
+      this.transport.isArrangerOverdubEnabled().markInterested();
+      this.transport.isClipLauncherOverdubEnabled().markInterested();
+      this.transport.isPlaying().addValueObserver((isPlaying) => {
+        this.sendEvent("transport.state", { isPlaying });
+      });
+      this.transport.tempo().value().addRawValueObserver((tempo) => {
+        this.sendEvent("transport.state", { tempo });
+      });
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "transport.get_status":
+          return {
+            isPlaying: this.transport.isPlaying().get(),
+            isRecording: this.transport.isArrangerRecordEnabled().get(),
+            tempo: this.transport.tempo().value().getRaw(),
+            position: this.transport.getPosition().get(),
+            timeSignature: `${this.transport.timeSignature().numerator().get()}/${this.transport.timeSignature().denominator().get()}`,
+            loop: {
+              enabled: this.transport.isArrangerLoopEnabled().get(),
+              start: this.transport.getInPosition().get(),
+              end: this.transport.getOutPosition().get()
+            },
+            punch: {
+              in: this.transport.isPunchInEnabled().get(),
+              out: this.transport.isPunchOutEnabled().get()
+            },
+            overdub: {
+              arranger: this.transport.isArrangerOverdubEnabled().get(),
+              launcher: this.transport.isClipLauncherOverdubEnabled().get()
+            },
+            metronome: this.transport.isMetronomeEnabled().get()
+          };
+        case "transport.play":
+          this.transport.play();
+          return "OK";
+        case "transport.stop":
+          this.transport.stop();
+          return "OK";
+        case "transport.restart":
+          this.transport.restart();
+          return "OK";
+        case "transport.record":
+          this.transport.record();
+          return "OK";
+        case "transport.getTempo":
+          return this.transport.tempo().value().getRaw();
+        case "transport.setTempo":
+          if (params && params[0]) {
+            this.transport.tempo().value().setRaw(params[0]);
+            return "OK";
+          }
+          throw "Missing tempo parameter";
+        case "transport.getPosition":
+          return this.transport.getPosition().get();
+        case "transport.setPosition":
+          if (params && params[0]) {
+            this.transport.getPosition().set(params[0]);
+            return "OK";
+          }
+          throw "Missing position parameter";
+        case "transport.getIsPlaying":
+          return this.transport.isPlaying().get();
+        case "transport.getIsRecording":
+          return this.transport.isArrangerRecordEnabled().get();
+        case "transport.toggleLoop":
+          this.transport.isArrangerLoopEnabled().toggle();
+          return "OK";
+        case "transport.setLoopStart":
+          if (params && params[0] !== void 0) {
+            this.transport.getInPosition().set(params[0]);
+            return "OK";
+          }
+          throw "Missing loop start parameter";
+        case "transport.setLoopEnd":
+          if (params && params[0] !== void 0) {
+            this.transport.getOutPosition().set(params[0]);
+            return "OK";
+          }
+          throw "Missing loop end parameter";
+        case "transport.getLoopStatus":
+          return {
+            enabled: this.transport.isArrangerLoopEnabled().get(),
+            start: this.transport.getInPosition().get(),
+            end: this.transport.getOutPosition().get()
+          };
+        case "transport.toggle_metronome":
+          this.transport.isMetronomeEnabled().toggle();
+          return "OK";
+        case "transport.time_signature":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            this.transport.timeSignature().set(params[0], params[1]);
+            return "OK";
+          }
+          return `${this.transport.timeSignature().numerator().get()}/${this.transport.timeSignature().denominator().get()}`;
+        case "transport.tap_tempo":
+          this.transport.tapTempo();
+          return "OK";
+        case "transport.toggle_punch_in":
+          this.transport.isPunchInEnabled().toggle();
+          return "OK";
+        case "transport.toggle_punch_out":
+          this.transport.isPunchOutEnabled().toggle();
+          return "OK";
+        case "transport.set_punch_in":
+          if (params && params[0] !== void 0) {
+            this.transport.isPunchInEnabled().set(params[0]);
+            return "OK";
+          }
+          throw "Missing punch in state parameter";
+        case "transport.set_punch_out":
+          if (params && params[0] !== void 0) {
+            this.transport.isPunchOutEnabled().set(params[0]);
+            return "OK";
+          }
+          throw "Missing punch out state parameter";
+        case "transport.get_punch_status":
+          return {
+            punchIn: this.transport.isPunchInEnabled().get(),
+            punchOut: this.transport.isPunchOutEnabled().get()
+          };
+        case "transport.toggle_arranger_overdub":
+          this.transport.isArrangerOverdubEnabled().toggle();
+          return "OK";
+        case "transport.toggle_launcher_overdub":
+          this.transport.isClipLauncherOverdubEnabled().toggle();
+          return "OK";
+        case "transport.get_overdub_status":
+          return {
+            arranger: this.transport.isArrangerOverdubEnabled().get(),
+            launcher: this.transport.isClipLauncherOverdubEnabled().get()
+          };
+        case "transport.continue_playback":
+          this.transport.continuePlayback();
+          return "OK";
+        case "transport.return_to_zero":
+          this.transport.returnToZero();
+          return "OK";
+        case "transport.fast_forward":
+          this.transport.fastForward();
+          return "OK";
+        case "transport.rewind":
+          this.transport.rewind();
+          return "OK";
+        case "transport.nudge_forward":
+          this.transport.incPosition(1, false);
+          return "OK";
+        case "transport.nudge_backward":
+          this.transport.incPosition(-1, false);
+          return "OK";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/controller-mcp.ts
+  loadAPI(25);
+  host.defineController("BitwigPOC", "BitwigPOC", "0.2", "761be710-90df-4577-8094-01314323214c", "Laurent Huzard");
+  var modules = [];
+  var activeConnection = null;
+  function init() {
+    const sendEvent = (method, params) => {
+      if (!activeConnection) return;
+      sendJSON(activeConnection, { jsonrpc: "2.0", method, params });
+    };
+    modules.push(new TransportModule(host, sendEvent));
+    const trackBankModule = new TrackBankModule(host, sendEvent);
     modules.push(trackBankModule);
     modules.push(new SceneBankModule(host));
     modules.push(new MixerModule(host));
-    modules.push(new CursorModule(host));
+    modules.push(new CursorModule(host, sendEvent));
     modules.push(new ApplicationModule(host));
-    // DeviceModule depends on TrackBank
     modules.push(new DeviceModule(trackBankModule.trackBank));
-    // ClipModule for step sequencer
-    modules.push(new ClipModule(host));
-    // Browser Module
+    modules.push(new ClipModule(host, sendEvent));
     modules.push(new BrowserModule(host));
-    println("BitwigPOC Initialized with " + modules.length + " modules (v0.2)");
-    // --- Network Server Setup ---
-    var remoteSocket = host.createRemoteConnection("BitwigMCP", 8888);
-    remoteSocket.setClientConnectCallback(function (remoteConnection) {
-        println("Client connected");
-        isConnected = true;
-        activeConnection = remoteConnection;
-        remoteConnection.setDisconnectCallback(function () {
-            println("Client disconnected");
-            isConnected = false;
-            activeConnection = null;
-        });
-        remoteConnection.setReceiveCallback(function (data) {
-            // Decode data (simplistic bytes to string)
-            var msgString = "";
-            for (var i = 0; i < data.length; i++) {
-                msgString += String.fromCharCode(data[i]);
-            }
-            // Handle JSON-RPC
-            try {
-                var request = JSON.parse(msgString);
-                handleRequest(request, remoteConnection);
-            }
-            catch (e) {
-                println("Error parsing JSON: " + e);
-                sendError(remoteConnection, null, -32700, "Parse error");
-            }
-        });
+    println(`BitwigPOC Initialized with ${modules.length} modules (v0.2)`);
+    const remoteSocket = host.createRemoteConnection("BitwigMCP", 8888);
+    remoteSocket.setClientConnectCallback((remoteConnection) => {
+      println("Client connected");
+      activeConnection = remoteConnection;
+      remoteConnection.setDisconnectCallback(() => {
+        println("Client disconnected");
+        activeConnection = null;
+      });
+      remoteConnection.setReceiveCallback((data) => {
+        let msgString = "";
+        for (let i = 0; i < data.length; i++) {
+          msgString += String.fromCharCode(data[i]);
+        }
+        try {
+          const request = JSON.parse(msgString);
+          handleRequest(request, remoteConnection);
+        } catch (error) {
+          println(`Error parsing JSON: ${String(error)}`);
+          sendError(remoteConnection, null, -32700, "Parse error");
+        }
+      });
     });
-}
-function sendEvent(method, params) {
-    if (activeConnection) {
-        var event = {
-            jsonrpc: "2.0",
-            method: method,
-            params: params
-        };
-        sendJSON(activeConnection, event);
-    }
-}
-function handleRequest(request, connection) {
+  }
+  function handleRequest(request, connection) {
+    var _a, _b, _c, _d;
     if (!request.method) {
-        sendError(connection, request.id, -32600, "Invalid Request");
-        return;
+      sendError(connection, (_a = request.id) != null ? _a : null, -32600, "Invalid Request");
+      return;
     }
-    var result;
-    var handled = false;
-    // Basic Ping
+    let result;
+    let handled = false;
     if (request.method === "ping") {
-        result = "pong";
-        handled = true;
-    }
-    else if (request.method === "project.get_summary") {
-        result = {
-            transport: null,
-            tracks: [],
-            scenes: [],
-            selection: {
-                track: null,
-                device: null,
-                clip: null
-            },
-            mixer: {
-                masterVolume: null
-            }
-        };
-        for (var i = 0; i < modules.length; i++) {
-            var m = modules[i];
-            try {
-                if (m instanceof TransportModule)
-                    result.transport = m.handleRequest("transport.get_status");
-                if (m instanceof TrackBankModule)
-                    result.tracks = m.handleRequest("track.list");
-                if (m instanceof SceneBankModule)
-                    result.scenes = m.handleRequest("scene.list");
-                if (m instanceof CursorModule) {
-                    result.selection.track = m.handleRequest("cursor_track.get_status");
-                    result.selection.device = m.handleRequest("cursor_device.get_status");
-                    result.selection.clip = m.handleRequest("cursor_clip.get_status");
-                }
-                if (m instanceof MixerModule) {
-                    result.mixer.masterVolume = m.handleRequest("mixer.master.get_volume");
-                }
-            }
-            catch (e) {
-            }
+      result = "pong";
+      handled = true;
+    } else if (request.method === "project.get_summary") {
+      const summary = {
+        transport: null,
+        tracks: [],
+        scenes: [],
+        selection: {
+          track: null,
+          device: null,
+          clip: null
+        },
+        mixer: {
+          masterVolume: null
         }
-        handled = true;
-    }
-    else {
-        // Delegate to modules
-        for (var i = 0; i < modules.length; i++) {
-            try {
-                // Each module's handleRequest returns undefined if it doesn't handle the method
-                // Returns the result (or null) if it handles it.
-                var res = modules[i].handleRequest(request.method, request.params);
-                if (res !== undefined) {
-                    result = res;
-                    handled = true;
-                    break;
-                }
-            }
-            catch (e) {
-                // Module threw a specific error (e.g., "Missing parameters")
-                sendError(connection, request.id, -32602, "Error processing " + request.method + ": " + e);
-                return;
-            }
+      };
+      for (const module of modules) {
+        try {
+          if (module instanceof TransportModule) summary.transport = module.handleRequest("transport.get_status");
+          if (module instanceof TrackBankModule) summary.tracks = module.handleRequest("track.list");
+          if (module instanceof SceneBankModule) summary.scenes = module.handleRequest("scene.list");
+          if (module instanceof CursorModule) {
+            summary.selection.track = module.handleRequest("cursor_track.get_status");
+            summary.selection.device = module.handleRequest("cursor_device.get_status");
+            summary.selection.clip = module.handleRequest("cursor_clip.get_status");
+          }
+          if (module instanceof MixerModule) {
+            summary.mixer.masterVolume = module.handleRequest("mixer.master.get_volume");
+          }
+        } catch (e) {
         }
+      }
+      result = summary;
+      handled = true;
+    } else {
+      for (const module of modules) {
+        try {
+          const response = module.handleRequest(request.method, request.params);
+          if (response !== void 0) {
+            result = response;
+            handled = true;
+            break;
+          }
+        } catch (error) {
+          sendError(connection, (_b = request.id) != null ? _b : null, -32602, `Error processing ${request.method}: ${String(error)}`);
+          return;
+        }
+      }
     }
     if (handled) {
-        sendResponse(connection, request.id, result);
+      sendResponse(connection, (_c = request.id) != null ? _c : null, result);
+    } else {
+      sendError(connection, (_d = request.id) != null ? _d : null, -32601, `Method not found: ${request.method}`);
     }
-    else {
-        sendError(connection, request.id, -32601, "Method not found: " + request.method);
-    }
-}
-// --- Helpers ---
-function sendResponse(connection, id, result) {
-    var response = {
-        jsonrpc: "2.0",
-        id: id,
-        result: result
-    };
-    sendJSON(connection, response);
-}
-function sendError(connection, id, code, message) {
-    var response = {
-        jsonrpc: "2.0",
-        id: id,
-        error: {
-            code: code,
-            message: message
-        }
-    };
-    sendJSON(connection, response);
-}
-function sendJSON(connection, data) {
-    var str = JSON.stringify(data) + "\n";
-    var bytes = [];
-    for (var i = 0; i < str.length; i++) {
-        bytes.push(str.charCodeAt(i));
+  }
+  function sendResponse(connection, id, result) {
+    sendJSON(connection, {
+      jsonrpc: "2.0",
+      id,
+      result
+    });
+  }
+  function sendError(connection, id, code, message) {
+    sendJSON(connection, {
+      jsonrpc: "2.0",
+      id,
+      error: {
+        code,
+        message
+      }
+    });
+  }
+  function sendJSON(connection, data) {
+    const str = `${JSON.stringify(data)}
+`;
+    const bytes = [];
+    for (let i = 0; i < str.length; i++) {
+      bytes.push(str.charCodeAt(i));
     }
     connection.send(bytes);
-}
-function flush() {
-    // Callback for GUI refresh/frame updates
-}
-function exit() {
+  }
+  function flush() {
+  }
+  function exit() {
     println("BitwigPOC Exited");
-}
+  }
+  var globalScope = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
+  globalScope.init = init;
+  globalScope.flush = flush;
+  globalScope.exit = exit;
+})();
