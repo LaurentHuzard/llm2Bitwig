@@ -7,6 +7,7 @@ import { MixerModule } from "./modules/Mixer";
 import { SceneBankModule } from "./modules/SceneBank";
 import { TrackBankModule } from "./modules/TrackBank";
 import { TransportModule } from "./modules/Transport";
+import { HardwareSurfaceModule } from "./modules/HardwareSurface";
 import type { ControllerModule, SendEvent } from "./types/controller";
 
 loadAPI(25);
@@ -54,6 +55,7 @@ function init(): void {
   modules.push(new DeviceModule(trackBankModule.trackBank));
   modules.push(new ClipModule(host, sendEvent));
   modules.push(new BrowserModule(host));
+  modules.push(new HardwareSurfaceModule(host));
 
   println(`BitwigPOC Initialized with ${modules.length} modules (v0.2)`);
 

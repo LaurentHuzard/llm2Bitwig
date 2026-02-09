@@ -7,6 +7,11 @@ declare const CursorDeviceFollowMode: {
   FOLLOW_SELECTION: number;
 };
 
+declare const Orientation: {
+  HORIZONTAL: number;
+  VERTICAL: number;
+};
+
 type ValueObserver<T> = (value: T) => void;
 
 interface BooleanValue {
@@ -265,6 +270,41 @@ interface RemoteSocket {
   setClientConnectCallback(callback: (connection: RemoteConnection) => void): void;
 }
 
+interface HardwareControl {
+  getName(): string;
+  setName(name: string): void;
+  setLabel(label: string): void;
+  setIndexInGroup(index: number): void;
+}
+
+interface HardwareSlider extends HardwareControl {
+  setOrientation(orientation: number): void;
+  value(): NumberValue;
+}
+
+interface AbsoluteHardwareKnob extends HardwareControl {
+  value(): NumberValue;
+}
+
+interface RelativeHardwareKnob extends HardwareControl {
+  setStepSize(stepSize: number): void;
+  setSensitivity(sensitivity: number): void;
+}
+
+interface HardwareButton extends HardwareControl {
+  isPressed(): BooleanValue;
+  setAfterTouchInterceptionWindow(value: number): void;
+}
+
+interface HardwareSurface {
+  createHardwareSlider(id: string): HardwareSlider;
+  createAbsoluteHardwareKnob(id: string): AbsoluteHardwareKnob;
+  createRelativeHardwareKnob(id: string): RelativeHardwareKnob;
+  createHardwareButton(id: string): HardwareButton;
+  updateHardware(): void;
+  invalidateHardwareOutputState(): void;
+}
+
 interface ControllerHost {
   defineController(name: string, vendor: string, version: string, id: string, author: string): void;
   createTransport(): Transport;
@@ -279,4 +319,5 @@ interface ControllerHost {
   createEffectTrackBank(tracks: number, sends: number, scenes: number): EffectTrackBank;
   createSceneBank(size: number): SceneBank;
   getProject(): Project;
+  createHardwareSurface(): HardwareSurface;
 }
