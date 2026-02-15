@@ -17,7 +17,7 @@ This document defines the standard operating procedures for the Bitwig MCP Agent
 3.  **Phase 2: Implementation**
     -   **Orchestrator** (upon plan approval) -> **Implementer**
     -   **Implementer** writes code.
-    -   **Implementer** commits after each tool implementation.
+    -   **Implementer** commits after each implementation.
     -   **Implementer** notifies when done.
 
 4.  **Phase 3: Verification**
@@ -29,7 +29,7 @@ This document defines the standard operating procedures for the Bitwig MCP Agent
 5.  **Phase 4: Documentation & Maintenance**
     -   **Orchestrator** -> **Tech Writer** (updates Docs).
     -   (Optional) **Orchestrator** -> **Refactorer** (if code quality needs bump).
-    -   (Optional) **Orchestrator** -> **Journalist** (if milestone reached).
+    -   (Optional) **Orchestrator** -> **Journalist** (if milestone/issues reached).
 
 6.  **Done** -> **Orchestrator** notifies User.
 

@@ -39,6 +39,38 @@ export class HardwareSurfaceModule implements ControllerModule {
                 }
                 throw "Missing parameters (id, label)";
 
+            case "hardware.create_light":
+                if (params && params[0] !== undefined && params[1] !== undefined) {
+                    const id = params[0] as string;
+                    const label = params[1] as string;
+                    // Optional linked button ID
+                    const linkedButtonId = params[2] as string | undefined;
+                    this.createLight(id, label, linkedButtonId);
+                    return "OK";
+                }
+                throw "Missing parameters (id, label)";
+
+            case "hardware.bind_cc":
+                if (params && params[0] !== undefined && params[1] !== undefined && params[2] !== undefined) {
+                    const id = params[0] as string;
+                    const channel = params[1] as number;
+                    const cc = params[2] as number;
+                    const isAbsolute = params[3] as boolean ?? true;
+                    this.bindCC(id, channel, cc, isAbsolute);
+                    return "OK";
+                }
+                throw "Missing parameters (id, channel, cc)";
+
+            case "hardware.bind_note":
+                if (params && params[0] !== undefined && params[1] !== undefined && params[2] !== undefined) {
+                    const id = params[0] as string;
+                    const channel = params[1] as number;
+                    const note = params[2] as number;
+                    this.bindNote(id, channel, note);
+                    return "OK";
+                }
+                throw "Missing parameters (id, channel, note)";
+
             case "hardware.update":
                 this.surface.updateHardware();
                 return "OK";
@@ -90,6 +122,62 @@ export class HardwareSurfaceModule implements ControllerModule {
         button.setLabel(label);
         button.isPressed().markInterested();
         this.controls.set(id, button);
+    }
+
+    private createLight(id: string, label: string, linkedButtonId?: string) {
+        const light = this.surface.createMultiStateHardwareLight(id);
+        light.setLabel(label);
+        light.isOn().markInterested();
+        light.color().markInterested();
+
+        if (linkedButtonId) {
+            const button = this.controls.get(linkedButtonId);
+            if (button && 'setBackgroundLight' in button) {
+                (button as HardwareButton).setBackgroundLight(light);
+            }
+        }
+        this.controls.set(id, light);
+    }
+
+    private bindCC(id: string, channel: number, cc: number, isAbsolute: boolean) {
+        const control = this.controls.get(id);
+        if (!control) throw `Control not found: ${id}`;
+
+        const port = host.getMidiIn(0);
+
+        if (isAbsolute) {
+            const matcher = port.createAbsoluteCCValueMatcher(channel, cc);
+            if ('setAdjustValueMatcher' in control) {
+                (control as AbsoluteHardwareKnob).setAdjustValueMatcher(matcher);
+            }
+        } else {
+            // Defaulting to relative signed bit for now, typical for encoders
+            const matcher = port.createRelativeSignedBitCCValueMatcher(channel, cc, 128);
+            if ('setAdjustValueMatcher' in control) {
+                (control as RelativeHardwareKnob).setAdjustValueMatcher(matcher);
+            }
+        }
+
+        if ('pressedAction' in control) {
+            // Buttons usually don't bind to CC for value, but for action. 
+            // We might need a separate bind_action for buttons if not using CC value > 64 logic
+            const actionMatcher = port.createCCActionMatcher(channel, cc, 127);
+            (control as HardwareButton).pressedAction().setActionMatcher(actionMatcher);
+        }
+    }
+
+    private bindNote(id: string, channel: number, note: number) {
+        const control = this.controls.get(id);
+        if (!control) throw `Control not found: ${id}`;
+
+        const port = host.getMidiIn(0);
+
+        if ('pressedAction' in control) {
+            const matcher = port.createNoteOnActionMatcher(channel, note);
+            (control as HardwareButton).pressedAction().setActionMatcher(matcher);
+        } else {
+            throw "Binding notes to non-buttons not fully supported yet";
+        }
     }
 
     private getControls() {

@@ -4,3 +4,4 @@ node_modules/
 .idea/
 /dist/index.js
 /dist/index.js.map
+beat-twin/venv/

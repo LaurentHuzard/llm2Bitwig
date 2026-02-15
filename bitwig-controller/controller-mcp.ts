@@ -8,6 +8,10 @@ import { SceneBankModule } from "./modules/SceneBank";
 import { TrackBankModule } from "./modules/TrackBank";
 import { TransportModule } from "./modules/Transport";
 import { HardwareSurfaceModule } from "./modules/HardwareSurface";
+import { ArrangerModule } from "./modules/Arranger";
+import { NoteInputModule } from "./modules/NoteInput";
+import { MidiModule } from "./modules/Midi";
+import { OscModule } from "./modules/Osc";
 import type { ControllerModule, SendEvent } from "./types/controller";
 
 loadAPI(25);
@@ -32,6 +36,7 @@ type ProjectSummary = {
   mixer: {
     masterVolume: unknown | null;
   };
+  arranger: unknown | null;
 };
 
 const modules: ControllerModule[] = [];
@@ -51,11 +56,16 @@ function init(): void {
   modules.push(new SceneBankModule(host));
   modules.push(new MixerModule(host));
   modules.push(new CursorModule(host, sendEvent));
-  modules.push(new ApplicationModule(host));
+  const applicationModule = new ApplicationModule(host);
+  modules.push(applicationModule);
   modules.push(new DeviceModule(trackBankModule.trackBank));
   modules.push(new ClipModule(host, sendEvent));
   modules.push(new BrowserModule(host));
   modules.push(new HardwareSurfaceModule(host));
+  modules.push(new ArrangerModule(host, sendEvent, applicationModule.application));
+  modules.push(new NoteInputModule(host));
+  modules.push(new MidiModule(host, sendEvent));
+  modules.push(new OscModule(host, sendEvent));
 
   println(`BitwigPOC Initialized with ${modules.length} modules (v0.2)`);
 
@@ -111,7 +121,8 @@ function handleRequest(request: RequestMessage, connection: RemoteConnection): v
       },
       mixer: {
         masterVolume: null
-      }
+      },
+      arranger: null
     };
     for (const module of modules) {
       try {
@@ -126,6 +137,10 @@ function handleRequest(request: RequestMessage, connection: RemoteConnection): v
         if (module instanceof MixerModule) {
           summary.mixer.masterVolume = module.handleRequest("mixer.master.get_volume");
         }
+        if (module instanceof ArrangerModule) {
+          summary.arranger = module.handleRequest("arranger.get_status");
+        }
+        // NoteInput doesn't have status to report for project summary yet
       } catch {
         // Swallow errors to avoid aborting summary aggregation.
       }

@@ -175,6 +175,9 @@ export class TransportModule implements ControllerModule {
       case "transport.nudge_backward":
         this.transport.incPosition(-1, false);
         return "OK";
+      case "transport.add_cue_marker":
+        this.transport.addCueMarkerAtPlaybackPosition();
+        return "OK";
     }
     return undefined;
   }

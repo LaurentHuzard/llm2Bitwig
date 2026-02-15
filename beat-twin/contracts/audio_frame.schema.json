@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AudioFrame",
+  "type": "object",
+  "properties": {
+    "type": { "const": "audio_frame" },
+    "timestamp": { "type": "number" },
+    "sample_rate": { "type": "integer" },
+    "buffer": {
+      "type": "array",
+      "items": { "type": "number" }
+    }
+  },
+  "required": ["type", "timestamp", "sample_rate", "buffer"]
+}

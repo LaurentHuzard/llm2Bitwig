@@ -18,20 +18,20 @@ This roadmap outlines the path to full coverage of the Bitwig Studio API within 
 
 ### Issue 2.1: Advanced Hardware Abstraction
 **Objective**: Map physical controls to Bitwig parameters dynamically.
-- [ ] **Subtask 2.1.1**: Implement `HardwareSurface` management (create/invalidate).
-- [ ] **Subtask 2.1.2**: Implement `AbsoluteHardwareControl` and `AbsoluteHardwareKnob`.
-- [ ] **Subtask 2.1.3**: Implement `RelativeHardwareControl` and `RelativeHardwareKnob`.
-- [ ] **Subtask 2.1.4**: Implement `HardwareButton` and `HardwareLight` (with `HardwareLightVisualState`).
+- [x] **Subtask 2.1.1**: Implement `HardwareSurface` creation/management.
+- [x] **Subtask 2.1.2**: Implement `AbsoluteHardwareControl` and `AbsoluteHardwareKnob`.
+- [x] **Subtask 2.1.3**: Implement `RelativeHardwareControl` and `RelativeHardwareKnob`.
+- [x] **Subtask 2.1.4**: Implement `HardwareButton` and `HardwareLight` (with `HardwareLightVisualState`).
 - [ ] **Subtask 2.1.5**: Implement `HardwareTextDisplay` and `HardwarePixelDisplay`.
-- [ ] **Subtask 2.1.6**: Bind controls using `HardwareActionBindable` and `HardwareActionBinding`.
+- [x] **Subtask 2.1.6**: Bind controls using `HardwareActionBindable` and `HardwareActionBinding`.
 
 ### Issue 2.2: MIDI & OSC Connectivity
 **Objective**: Allow raw MIDI I/O and Open Sound Control messaging.
-- [ ] **Subtask 2.2.1**: Implement `MidiIn` with `ShortMidiMessageReceivedCallback` and `SysexMidiDataReceivedCallback`.
-- [ ] **Subtask 2.2.2**: Implement `MidiOut` for sending Short MIDI and Sysex.
-- [ ] **Subtask 2.2.3**: Implement `OscServer` management (start/stop/configure).
-- [ ] **Subtask 2.2.4**: Create `OscAddressSpace` registering and `OscMethod` callbacks.
-- [ ] **Subtask 2.2.5**: Handle `OscMessage`, `OscBundle`, and `OscPacket` parsing/sending.
+- [x] **Subtask 2.2.1**: Implement `MidiIn` with `ShortMidiMessageReceivedCallback` and `SysexMidiDataReceivedCallback`.
+- [x] **Subtask 2.2.2**: Implement `MidiOut` for sending Short MIDI and Sysex.
+- [x] **Subtask 2.2.3**: Implement `OscServer` management (start/stop/configure).
+- [x] **Subtask 2.2.4**: Create `OscAddressSpace` registering and `OscMethod` callbacks.
+- [x] **Subtask 2.2.5**: Handle `OscMessage`, `OscBundle`, and `OscPacket` parsing/sending.
 
 ---
 

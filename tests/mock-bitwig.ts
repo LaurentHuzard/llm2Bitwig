@@ -111,6 +111,56 @@ function processRequest(
         } else {
             result = "OK";
         }
+    } else if (method.startsWith("arranger.")) {
+        if (method === "arranger.cues.list") {
+            // Mock markers
+            if (!global.mockMarkers) {
+                global.mockMarkers = [
+                    { index: 0, name: "Intro", position: 0.0, color: { r: 0.5, g: 0.5, b: 0.5 } },
+                    { index: 1, name: "Verse", position: 32.0, color: { r: 0.2, g: 0.8, b: 0.2 } }
+                ];
+            }
+            result = global.mockMarkers;
+        } else if (method === "arranger.cues.rename") {
+            // request.params is [index, name]
+            // We need to parse params from the request object if possible, but mock implementation here is rudimentary.
+            // The loop above parses JSON but processRequest arg is just { id, method, params }.
+            // But params in MCP server is passed as [arg1, arg2...] array to callBitwig?
+            // server-mcp/index.ts calls callBitwig(method, [args...])
+            // So params here is an array.
+            const params = request.params as any[];
+            if (global.mockMarkers && params && params.length >= 2) {
+                const index = params[0];
+                const name = params[1];
+                const m = global.mockMarkers.find((m: any) => m.index === index);
+                if (m) m.name = name;
+            }
+            result = "OK";
+        } else if (method === "arranger.cues.color") {
+            const params = request.params as any[];
+            if (global.mockMarkers && params && params.length >= 4) {
+                const index = params[0];
+                const r = params[1];
+                const g = params[2];
+                const b = params[3];
+                const m = global.mockMarkers.find((m: any) => m.index === index);
+                if (m) m.color = { r, g, b };
+            }
+            result = "OK";
+        } else {
+            result = "OK";
+        }
+    } else if (method === "transport.add_cue_marker") {
+        if (!global.mockMarkers) global.mockMarkers = [];
+        global.mockMarkers.push({
+            index: global.mockMarkers.length,
+            name: "New Marker",
+            position: 16.0, // Hardcoded for test
+            color: { r: 1, g: 1, b: 0 }
+        });
+        result = "OK";
+    } else if (method.startsWith("application.")) {
+        result = "OK";
     } else {
         result = "OK";
     }

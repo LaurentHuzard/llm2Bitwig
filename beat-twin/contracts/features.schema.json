@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FeatureEvent",
+  "type": "object",
+  "properties": {
+    "type": { "const": "feature_event" },
+    "timestamp": { "type": "number" },
+    "tempo": { "type": "number" },
+    "energy": { "type": "number" },
+    "transient_density": { "type": "number" }
+  },
+  "required": ["type", "timestamp"]
+}

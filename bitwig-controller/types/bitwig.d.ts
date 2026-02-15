@@ -63,6 +63,49 @@ interface PositionValue {
   set(value: number): void;
 }
 
+interface Arranger {
+  isTimelineVisible(): SettableBooleanValue;
+  isIoSectionVisible(): SettableBooleanValue;
+  isClipLauncherVisible(): SettableBooleanValue;
+  areEffectTracksVisible(): SettableBooleanValue;
+  hasDoubleRowTrackHeight(): SettableBooleanValue;
+  areCueMarkersVisible(): SettableBooleanValue;
+  isPlaybackFollowEnabled(): SettableBooleanValue;
+  zoomInLaneHeightsAll(): void;
+  zoomOutLaneHeightsAll(): void;
+  zoomInLaneHeightsSelected(): void;
+  zoomOutLaneHeightsSelected(): void;
+  createCueMarkerBank(size: number): CueMarkerBank;
+}
+
+interface CueMarker {
+  exists(): BooleanValue;
+  name(): SettableStringValue;
+  position(): SettableBeatTimeValue;
+  color(): SettableColorValue;
+  launch(quantized: boolean): void;
+}
+
+interface CueMarkerBank {
+  getItemAt(index: number): CueMarker;
+  cursorIndex(): NumberValue;
+  itemCount(): NumberValue;
+  scrollToMarker(position: number): void;
+}
+
+interface SettableBeatTimeValue extends NumberValue {
+  set(value: number): void;
+  get(): number;
+}
+
+interface SettableColorValue extends ColorValue {
+  set(red: number, green: number, blue: number): void;
+}
+
+interface SettableStringValue extends StringValue {
+  set(value: string): void;
+}
+
 interface Transport {
   tempo(): TempoValue;
   getPosition(): PositionValue;
@@ -87,6 +130,7 @@ interface Transport {
   fastForward(): void;
   rewind(): void;
   incPosition(deltaBeats: number, snap: boolean): void;
+  addCueMarkerAtPlaybackPosition(): void;
 }
 
 interface ClipLauncherSlot {
@@ -210,6 +254,23 @@ interface Application {
   createInstrumentTrack(index: number): void;
   createAudioTrack(index: number): void;
   createEffectTrack(index: number): void;
+  undo(): void;
+  redo(): void;
+  cut(): void;
+  copy(): void;
+  paste(): void;
+  duplicate(): void;
+  selectAll(): void;
+  selectNone(): void;
+  remove(): void;
+  arrowKeyUp(): void;
+  arrowKeyDown(): void;
+  arrowKeyLeft(): void;
+  arrowKeyRight(): void;
+  enter(): void;
+  escape(): void;
+  zoomIn(): void;
+  zoomOut(): void;
 }
 
 interface BrowserResultItem {
@@ -301,12 +362,117 @@ interface HardwareSurface {
   createAbsoluteHardwareKnob(id: string): AbsoluteHardwareKnob;
   createRelativeHardwareKnob(id: string): RelativeHardwareKnob;
   createHardwareButton(id: string): HardwareButton;
+  createMultiStateHardwareLight(id: string): MultiStateHardwareLight;
   updateHardware(): void;
   invalidateHardwareOutputState(): void;
 }
 
-interface ControllerHost {
+interface HardwareActionMatcher { }
+interface HardwareInputMatcher { }
+interface AbsoluteHardwareValueMatcher extends HardwareInputMatcher { }
+interface RelativeHardwareValueMatcher extends HardwareInputMatcher { }
+
+interface HardwareAction {
+  setActionMatcher(matcher: HardwareActionMatcher): void;
+}
+
+interface HardwareButton extends HardwareControl {
+  isPressed(): BooleanValue;
+  setAfterTouchInterceptionWindow(value: number): void;
+  pressedAction(): HardwareAction;
+  releasedAction(): HardwareAction;
+  setBackgroundLight(light: HardwareLight): void;
+}
+
+interface HardwareLight extends HardwareControl {
+  isOn(): BooleanValue;
+  color(): ColorValue;
+}
+
+interface MultiStateHardwareLight extends HardwareLight { }
+
+interface HardwareSlider extends HardwareControl {
+  setOrientation(orientation: number): void;
+  value(): NumberValue;
+  setAdjustValueMatcher(matcher: Packet | HardwareInputMatcher): void;
+}
+
+interface AbsoluteHardwareKnob extends HardwareControl {
+  value(): NumberValue;
+  setAdjustValueMatcher(matcher: AbsoluteHardwareValueMatcher): void;
+}
+
+interface RelativeHardwareKnob extends HardwareControl {
+  setStepSize(stepSize: number): void;
+  setSensitivity(sensitivity: number): void;
+  setAdjustValueMatcher(matcher: RelativeHardwareValueMatcher): void;
+}
+
+interface NoteInput {
+  sendRawMidiEvent(status: number, data0: number, data1: number): void;
+  sendNoteOn(channel: number, key: number, velocity: number): void;
+  sendNoteOff(channel: number, key: number, velocity: number): void;
+  sendPolyphonicAftertouch(channel: number, key: number, pressure: number): void;
+  setShouldConsumeEvents(shouldConsumeEvents: boolean): void;
+}
+
+interface MidiIn {
+  createNoteInput(name: string, ...masks: string[]): NoteInput;
+  createAbsoluteCCValueMatcher(channel: number, control: number): AbsoluteHardwareValueMatcher;
+  createRelativeSignedBitCCValueMatcher(channel: number, control: number, steps: number): RelativeHardwareValueMatcher;
+  createCCActionMatcher(channel: number, control: number, value: number): HardwareActionMatcher;
+  createNoteOnActionMatcher(channel: number, note: number): HardwareActionMatcher;
+  setMidiCallback(callback: (status: number, data1: number, data2: number) => void): void;
+  setSysexCallback(callback: (data: string) => void): void;
+}
+
+interface MidiOut {
+  sendMidi(status: number, data1: number, data2: number): void;
+  sendSysex(hexString: string): void;
+}
+
+interface OscAddressSpace {
+  registerMethod(addressPattern: string, typeTagPattern: string, description: string, callback: (connection: OscConnection, message: OscMessage) => void): void;
+  registerDefaultMethod(callback: (connection: OscConnection, message: OscMessage) => void): void;
+}
+
+interface OscConnection {
+  startBundle(): void;
+  endBundle(): void;
+  sendMessage(addressPattern: string, ...args: any[]): void;
+}
+
+interface OscMessage {
+  getAddressPattern(): string;
+  getTypeTagPattern(): string;
+  getArguments(): any[];
+}
+
+interface SystemOscModule {
+  createAddressSpace(): OscAddressSpace;
+  createUdpServer(port: number, addressSpace: OscAddressSpace): OscConnection; // In docs: void createUdpServer(port, space). But wait, OscConnection is from connectTo.
+  // Wait, createUdpServer(port, addressSpace) returns void.
+  // createUdpServer(addressSpace) returns OscServer.
+  // connectToUdpServer returns OscConnection.
+  connectToUdpServer(host: string, port: number, addressSpace: OscAddressSpace): OscConnection;
+}
+
+interface OscServer {
+  start(port: number): void;
+  stop(): void;
+}
+
+interface Packet { } // Placeholder
+
+interface Host {
+  getOscModule(): SystemOscModule;
+}
+
+interface ControllerHost extends Host {
   defineController(name: string, vendor: string, version: string, id: string, author: string): void;
+  createArranger(): Arranger;
+  getMidiIn(index: number): MidiIn;
+  getMidiOutPort(index: number): MidiOut;
   createTransport(): Transport;
   createApplication(): Application;
   createPopupBrowser(): PopupBrowser;

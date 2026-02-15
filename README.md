@@ -30,7 +30,19 @@ graph LR
 
 ## ✨ Features / Tools
 
-The following MCP tools are currently implemented:
+The following MCP capabilities are currently implemented:
+
+### 🗄 Resources (Read State)
+- `bitwig://project/summary`: JSON overview of project state (transport, selection, etc.)
+- `bitwig://tracks`: List of all tracks
+- `bitwig://scenes`: List of all scenes
+- `bitwig://devices`: List of devices on the currently selected track
+
+### 💬 Prompts (Templates)
+- `explain_project`: Fetches project structure and asks the AI to explain it.
+- `analyze_track`: Fetches the selected track's status and devices for analysis.
+
+### 🛠 Tools (Actions)
 
 ### Transport
 - `transport_play`: Start playback

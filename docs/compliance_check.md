@@ -7,9 +7,7 @@
 
 ## ✅ Executive Summary
 
-The Bitwig MCP Server is **fully compliant** with the core Model Context Protocol (MCP) specification as a specialized **Tools Server**. It correctly implements the required `initialize` handshake, tool listing, and tool invocation capabilities using the official SDK.
-
-However, it currently operates as a "Tool-Only" server and does not leverage other powerful MCP features like **Resources** (for reading state) or **Prompts** (for reusable contexts).
+The Bitwig MCP Server is **fully compliant** with the core Model Context Protocol (MCP) specification. It implements **Tools**, **Resources**, and **Prompts**, providing a comprehensive interface for AI agents.
 
 ---
 
@@ -32,21 +30,17 @@ The server exposes **~85 tools** for controlling Bitwig.
 -   **Error Handling**: Tool execution errors are caught and returned as valid tool results with `isError: true`. this separates "application errors" (e.g., Bitwig not running) from "protocol errors" (e.g., invalid JSON).
 -   **Status**: ✅ **Excellent**. This is the core strength of the implementation.
 
-#### 🗄 Resources (Not Implemented)
-The server **does NOT** expose any Resources.
--   *Missed Opportunity*: Currently, to get the list of tracks, the client must call the `track_list` *tool*.
--   *Recommendation*: Implement `resources/list` to expose:
-    -   `bitwig://tracks` (The current track list state)
-    -   `bitwig://project/summary` (Project metadata)
-    -   `bitwig://device/chain` (Device chain state)
-    -   This allows clients/LLMs to "read" the state passively without executing tools.
+#### 🗄 Resources (Implemented)
+The server exposes the following resources for passive state reading:
+-   `bitwig://project/summary`: JSON overview of project state (transport, selection, etc.).
+-   `bitwig://tracks`: JSON list of all tracks.
+-   `bitwig://devices`: JSON list of devices on the selected track.
+-   `bitwig://scenes`: JSON list of scenes.
 
-#### 💬 Prompts (Not Implemented)
-The server **does NOT** expose any Prompts.
--   *Missed Opportunity*: Often users ask repetitive things like "Analyze this track's structure."
--   *Recommendation*: Add prompts like:
-    -   `analyze_arrangement`: Automatically fetches track list and summary and asks LLM to critique it.
-    -   `suggest_device`: Feeds current track info and asks for device recommendations.
+#### 💬 Prompts (Implemented)
+The server provides templates to specialized tasks:
+-   `explain_project`: Fetches project structure and asks LLM to explain it.
+-   `analyze_track`: Fetches selected track status and asks LLM to analyze it.
 
 #### 🧠 Sampling (Not Implemented)
 The server **does NOT** use Sampling (Agentic Loop).

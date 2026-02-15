@@ -1,28 +1,29 @@
-# Current Task: Full Bitwig API Coverage
+# Current Task: Creative Note & Audio Tools (Phase 4)
 
-**Status**: Planning Phase (2026-02-10)
-**Owner**: Orchestrator / Planner
+**Status**: Completed
+**Owner**: Implementer
 
 ## Context
-The user has requested a comprehensive roadmap to implement *all* available Bitwig API interfaces. This expands the scope from a basic POC to a complete controller implementation.
+Phase 4 successfully implemented the `NoteInput` module, allowing the MCP server to inject MIDI events into Bitwig.
 
 ## Objectives
-1.  **Roadmap Creation**: Document a phased approach to cover the entire API surface (`docs/complete_implementation_roadmap.md`). (Completed)
-2.  **Execution**: Systematically implement each phase, starting with high-impact areas like Hardware Integration or Arranger Control.
-3.  **Verification**: Ensure each new module works correctly via mock tests or live verification.
+1.  **Implement NoteInput Module**: allow injecting MIDI notes into Bitwig.
+2.  **MCP Integration**: Add tools for note on/off and raw MIDI.
+3.  **Verification**: Verify note injection works.
 
-## Roadmap Overview (See `docs/complete_implementation_roadmap.md`)
-- **Phase 1**: Core Foundation (Basic Transport, Mixer, Device) - *Stable*
-- **Phase 2**: Hardware & MIDI Integration (MidiIn/Out, HardwareSurface) - *Next Priority*
-- **Phase 3**: Arranger & Timeline (Markers, Arranger Clips)
-- **Phase 4**: Creative Note & Audio Tools (NoteInput, Expressions)
-- **Phase 5**: Deep Browser & System Access (Specialized Browsers)
-- **Phase 6**: Visuals & UI Feedback (GraphicsOutput)
-- **Phase 7**: Application Actions & Automation (Global Actions)
-
-## Decisions
-- Split work into granular "Issues" and "Subtasks" to enable parallel development.
-- Prioritize Hardware Integration (Phase 2) to unlock physical controller potential.
+## Roadmap
+1.  **Types**:
+    -   [x] Update `bitwig.d.ts` with `MidiIn` and `NoteInput`
+2.  **Controller Implementation**:
+    -   [x] Create `bitwig-controller/modules/NoteInput.ts`
+    -   [x] Register module in `controller-mcp.ts`
+3.  **MCP Server Implementation**:
+    -   [x] Add `note_*` tools to `server-mcp/index.ts`
+4.  **Verification**:
+    -   [x] Create `tests/test_notes.ts`
+    -   [x] Run tests
 
 ## Progress
-- created `docs/complete_implementation_roadmap.md` with detailed breakdown.
+-   [x] NoteInput Module
+-   [x] Server Tools
+-   [x] Verification Script

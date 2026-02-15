@@ -1,24 +1,69 @@
-# Implementation Plan - Bundle Bitwig Controller into Single File
+# Implementation Plan: MCP Compliance Upgrade (Resources & Prompts)
 
-## Goal Description
-Ensure the Bitwig controller build emits a single, bundled `controller-mcp.js` that Bitwig can load directly without `load("modules/…")` invocations.
+**Status**: [ ] Draft / [ ] Review / [ ] Approved
+**Owner**: Planner / Implementer
+**Date**: 2026-02-11
 
-## Scope
-- Align `build:controller` script to produce the checked-in entry point instead of a separate `dist/` artifact.
-- Regenerate `bitwig-controller/controller-mcp.js` from `controller-mcp.ts` with the ES module imports bundled inline.
-- Keep the TypeScript sources and shared types untouched; the change is to build outputs and scripts.
+## Goal
+Implement **Resources** and **Prompts** support in the Bitwig MCP Server. This will allow LLMs to passively read the project state and use pre-defined templates for common tasks, significantly improving the "agentic" experience and compliance with the full MCP specification.
 
-## Files to Modify / Inspect
-- `package.json` (`scripts.build:controller`).
-- `bitwig-controller/controller-mcp.ts` (validate existing imports, no edits planned).
-- `bitwig-controller/dist/controller-mcp.js` (new artifact) and `bitwig-controller/controller-mcp.js` (checked-in bundle after build).
+## Proposed Changes
 
-## Implementation Steps
-1. Run `pnpm run build:controller` as currently defined to review the generated bundle at `bitwig-controller/dist/controller-mcp.js` and confirm it contains all modules inline with no `load()` calls.
-2. Update `package.json` so `build:controller` writes directly to `bitwig-controller/controller-mcp.js` (optionally still writing a secondary copy) to guarantee the checked-in entry point always matches the bundle Bitwig uses.
-3. Re-run the revised build script to regenerate `bitwig-controller/controller-mcp.js` and verify that the file is a single IIFE bundle without module imports.
-4. Document the expectation (e.g., in `README.md` or a controller note) that Bitwig should load `bitwig-controller/controller-mcp.js` and that running `pnpm run build:controller` refreshes that file.
+### 1. Server-Side (`server-mcp/index.ts`)
 
-## Verification Steps
-1. `pnpm run build:controller` (after script change) to produce `bitwig-controller/controller-mcp.js` and ensure it contains the bundled modules and no `load()` statements.
-2. Inspect `bitwig-controller/controller-mcp.js` for a `load()` call and confirm the same entry point is what Bitwig ships; note the required build command in the README or controller notes.
+#### 1.1 Import New Schemas
+Add imports for:
+-   `ListResourcesRequestSchema`
+-   `ReadResourceRequestSchema`
+-   `ListPromptsRequestSchema`
+-   `GetPromptRequestSchema`
+
+#### 1.2 Implement Resource Handlers
+-   **`ListResourcesRequestSchema`**: Return a list of available resources:
+    -   `bitwig://project`: Project overview (Transport, Meta).
+    -   `bitwig://tracks`: List of all tracks in the current bank.
+    -   `bitwig://devices`: List of devices on the currently selected track.
+-   **`ReadResourceRequestSchema`**:
+    -   Handle `bitwig://project`: Call `project.get_summary` (existing RPC) -> Return JSON string.
+    -   Handle `bitwig://tracks`: Call `track.list` (existing RPC) -> Return JSON string.
+    -   Handle `bitwig://devices`: Call `device.list` (existing RPC) -> Return JSON string.
+
+#### 1.3 Implement Prompt Handlers
+-   **`ListPromptsRequestSchema`**: Return a list of prompts:
+    -   `explain_project`: "Explain the structure and state of this project."
+    -   `analyze_track`: "Analyze the currently selected track and its devices."
+-   **`GetPromptRequestSchema`**:
+    -   Handle `explain_project`:
+        -   Fetch `project.get_summary` and `track.list` from Bitwig.
+        -   Construct a `user` message embedding this data as context.
+        -   Return `messages`.
+    -   Handle `analyze_track`:
+        -   Fetch `track.selected.get_status` and `device.list` from Bitwig.
+        -   Construct a `user` message with this data.
+        -   Return `messages`.
+
+### 2. Controller-Side (`bitwig-controller/controller-mcp.ts`)
+*No changes required.* The existing RPC methods (`project.get_summary`, `track.list`, etc.) are sufficient.
+
+## Verification Plan
+
+### Automated Tests
+1.  Create `tests/test_compliance.ts` (using the MCP Client/Inspector approach).
+2.  Test `resources/list` -> Verify `bitwig://project` exists.
+3.  Test `resources/read` -> Verify content is valid JSON.
+4.  Test `prompts/list` -> Verify `explain_project` exists.
+5.  Test `prompts/get` -> Verify it returns a populated message.
+
+### Manual Walkthrough
+1.  Connect via `mcp-inspector` or Claude Desktop.
+2.  Check the "Resources" tab -> Click to read `bitwig://project`.
+3.  Check the "Prompts" tab -> Run `explain_project`.
+
+## Risk Assessment
+-   **Low Risk**: This is purely additive to the MCP Server. Existing tools will function as before.
+-   **Latency**: Fetching data for prompts might take a few milliseconds, but `callBitwig` is fast (local TCP).
+
+## Definition of Done
+-   [ ] `server-mcp/index.ts` implements Resource and Prompt handlers.
+-   [ ] `tests/test_compliance.ts` passes.
+-   [ ] Documentation updated to reflect new capabilities.
