@@ -34,21 +34,23 @@ async def run():
                 return
 
             # Test Analysis
-            print("\n--- Testing 'ear_analyze' (1 sec) ---")
+            print("\n--- Testing 'ear_analyze' (3 sec for tempo) ---")
             try:
                 # This requires ear-service to be running on port 8001
-                result = await session.call_tool("ear_analyze", {"seconds": 1.0})
+                # Increase duration for better tempo detection
+                result = await session.call_tool("ear_analyze", {"seconds": 3.0})
                 
                 # Result content is a list of TextContent
                 text_result = result.content[0].text
-                print(f"Raw Result: {text_result[:200]}...") # Print first 200 chars
+                print(f"Raw Result: {text_result[:300]}...") 
                 
                 data = json.loads(text_result)
                 
-                if "features" in data and "centroid" in data:
+                if "features" in data and "key" in data:
                     print("\nSUCCESS: Analysis data received.")
                     print(f"Centroid: {data['centroid']:.2f} Hz")
-                    print(f"RMS: {data['rms']:.4f}")
+                    print(f"Tempo: {data.get('tempo', 0):.2f} BPM")
+                    print(f"Key: {data.get('key', 'Unknown')}")
                     print("Spectral Features:")
                     for band, energy in data['features'].items():
                         print(f" - {band}: {energy:.4f}")

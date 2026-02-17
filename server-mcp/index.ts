@@ -405,11 +405,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "ear_analyze",
-        description: "Analyze the last N seconds of audio for spectral features (bass, mid, high energy, brightness, loudness). Returns features normalized 0-1.",
+        description: "Analyze the last N seconds of audio for spectral features (bands, brightness, loudness), Tempo (BPM), and Key (e.g. C# Major). Returns detailed musical analysis.",
         inputSchema: {
           type: "object",
           properties: {
-            seconds: { type: "number", description: "Number of seconds to analyze (default 1.0)" },
+            seconds: { type: "number", description: "Number of seconds to analyze (default 1.0, minimum 3.0 recommended for tempo/key)" },
           },
         },
       },

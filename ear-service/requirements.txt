@@ -3,3 +3,4 @@ uvicorn>=0.20.0
 sounddevice>=0.4.6
 numpy>=1.20.0
 python-multipart
+librosa>=0.10.0

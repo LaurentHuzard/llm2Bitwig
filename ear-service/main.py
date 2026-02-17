@@ -193,23 +193,21 @@ def listen(seconds: int = 5):
         "channels": CHANNELS
     }
 
+import librosa
+
 @app.get("/analyze")
 def analyze_audio(seconds: float = 1.0):
     """
-    Analyze the last N seconds of audio for spectral features.
+    Analyze the last N seconds of audio.
     Returns:
-        - spectral_features: {
-            bass: 0.0-1.0,
-            low_mid: 0.0-1.0,
-            mid: 0.0-1.0,
-            high_mid: 0.0-1.0,
-            high: 0.0-1.0,
-            centroid: Hz,
-            flatness: 0.0-1.0
-        }
+        - spectral_features: energy in bands
+        - centroid: brightness
+        - rms/peak: loudness
+        - tempo: estimated BPM (float)
+        - key: estimated key (string)
     """
-    if seconds > 5.0:
-        seconds = 5.0
+    if seconds > 10.0:
+        seconds = 10.0
     
     chunks_needed = int(seconds * SAMPLE_RATE / BLOCK_SIZE)
     
@@ -229,7 +227,7 @@ def analyze_audio(seconds: float = 1.0):
     recording = np.concatenate(data_chunks, axis=0)
     
     # -- Analysis --
-    # Mix to mono for simple analysis
+    # Mix to mono
     if recording.shape[1] >= 2:
         mono = np.mean(recording, axis=1)
     else:
@@ -243,9 +241,6 @@ def analyze_audio(seconds: float = 1.0):
     fft_spectrum = np.fft.rfft(mono_windowed)
     freqs = np.fft.rfftfreq(len(mono_windowed), 1/SAMPLE_RATE)
     magnitude = np.abs(fft_spectrum)
-    
-    # Normalize magnitude
-    # magnitude = magnitude / (len(mono) / 2)
     
     # Energy in bands
     bands = {
@@ -264,25 +259,84 @@ def analyze_audio(seconds: float = 1.0):
         idx = np.where((freqs >= low) & (freqs < high))[0]
         if len(idx) > 0:
             band_energy = np.sum(magnitude[idx])
-            # Normalize by band width to get density? Or just ratio of total?
-            # Let's return relative energy (ratio of total)
             energy[name] = float(band_energy / total_energy)
         else:
             energy[name] = 0.0
 
     # Spectral Centroid
-    # sum(f * mag) / sum(mag)
     centroid = np.sum(freqs * magnitude) / total_energy
     
-    # RMS
+    # RMS/Peak
     rms = np.sqrt(np.mean(mono**2))
     peak = np.max(np.abs(mono))
     
+    # -- Librosa Features --
+    # 1. Tempo
+    tempo = 0.0
+    try:
+        # beat_track handles onsets. 
+        # Standardize sample rate if needed, but librosa defaults to 22050.
+        # We invoke with our rate.
+        # Note: Short buffers (<3s) make tempo detection unreliable.
+        if len(mono) > SAMPLE_RATE * 2: # Min 2 seconds
+            onset_env = librosa.onset.onset_strength(y=mono, sr=SAMPLE_RATE)
+            tempo_arr, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=SAMPLE_RATE)
+            if np.ndim(tempo_arr) > 0:
+                tempo = float(tempo_arr[0])
+            else:
+                tempo = float(tempo_arr)
+    except Exception as e:
+        print(f"Tempo detection error: {e}")
+        
+    # 2. Key Detection
+    key = "Unknown"
+    try:
+        # Chroma CQT usually better for pitch classes
+        chroma = librosa.feature.chroma_cqt(y=mono, sr=SAMPLE_RATE)
+        # Sum chroma over time to get global chroma vector
+        chroma_vals = np.sum(chroma, axis=1)
+        
+        # Simple template matching for Major/Minor keys
+        # Pitch classes: C, C#, D, D#, E, F, F#, G, G#, A, A#, B
+        pitch_classes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        
+        # Templates (Krumhansl-Schmuckler) - simplified
+        major_profile = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+        minor_profile = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+        
+        # Normalize chroma
+        chroma_vals = chroma_vals / (np.max(chroma_vals) + 1e-9)
+        major_profile = major_profile / np.max(major_profile)
+        minor_profile = minor_profile / np.max(minor_profile)
+        
+        best_corr = -1.0
+        
+        for i in range(12):
+            # Rotate profile to check each key
+            # Major
+            p_major = np.roll(major_profile, i)
+            corr = np.corrcoef(chroma_vals, p_major)[0, 1]
+            if corr > best_corr:
+                best_corr = corr
+                key = f"{pitch_classes[i]} Major"
+                
+            # Minor
+            p_minor = np.roll(minor_profile, i)
+            corr = np.corrcoef(chroma_vals, p_minor)[0, 1]
+            if corr > best_corr:
+                best_corr = corr
+                key = f"{pitch_classes[i]} Minor"
+                
+    except Exception as e:
+        print(f"Key detection error: {e}")
+
     return {
         "features": energy,
         "centroid": float(centroid),
         "rms": float(rms),
         "peak": float(peak),
+        "tempo": tempo,
+        "key": key,
         "duration": float(len(mono) / SAMPLE_RATE)
     }
 
