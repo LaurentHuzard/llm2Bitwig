@@ -1,0 +1,10 @@
+/.gradle/
+/build/
+
+# IDE/editor noise
+/.idea/
+*.iml
+
+# OS noise
+.DS_Store
+
