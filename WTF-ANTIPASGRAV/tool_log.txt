@@ -1,0 +1,36 @@
+    // --- Note Input Advanced ---
+    case "note_input_assign_expression":
+      result = await callBitwig("note_input.assign_poly_aftertouch_to_expression", [args.channel, args.expression, args.pitchRange]);
+      break;
+    case "note_input_set_mpe":
+      result = await callBitwig("note_input.set_use_expressive_midi", [args.enabled, args.baseChannel, args.pitchBendRange]);
+      break;
+    case "note_input_set_key_translation":
+      result = await callBitwig("note_input.set_key_translation_table", [args.table]);
+      break;
+    case "note_input_set_velocity_translation":
+      result = await callBitwig("note_input.set_velocity_translation_table", [args.table]);
+      break;
+
+    // --- Drum Pad Tools ---
+    case "drumpad_get_status":
+      result = await callBitwig("drumpad.get_status");
+      break;
+    case "drumpad_select":
+      result = await callBitwig("drumpad.select", [args.index]);
+      break;
+    case "drumpad_scroll_forward":
+      result = await callBitwig("drumpad.scroll_forward");
+      break;
+    case "drumpad_scroll_backward":
+      result = await callBitwig("drumpad.scroll_backward");
+      break;
+    case "drumpad_set_volume":
+      result = await callBitwig("drumpad.set_volume", [args.index, args.value]);
+      break;
+    case "drumpad_set_mute":
+      result = await callBitwig("drumpad.set_mute", [args.index, args.state]);
+      break;
+    case "drumpad_set_solo":
+      result = await callBitwig("drumpad.set_solo", [args.index, args.state]);
+      break;

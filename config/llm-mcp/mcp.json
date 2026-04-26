@@ -1,10 +1,13 @@
 {
-  "mcpServers": {
-    "bitwig-mcp": {
+  "mcp_servers": [
+    {
+      "name": "bitwig-mcp",
       "command": "node",
       "args": [
-        "/home/taenia/Code/bitwig-mcp-poc/dist/index.js"
-      ]
+        "/home/taenia/Code/lolOS/beat-twin/dist/index.js"
+      ],
+      "env": {}
     }
-  }
+  ],
+  "webui_mcp_proxy": true
 }

@@ -3,23 +3,29 @@
 **A Proof of Concept bridging [Bitwig Studio](https://www.bitwig.com/) with the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).**
 
 ## 🎯 Goal
+
 The goal of this project is to demonstrate how an AI Agent can control a Digital Audio Workstation (DAW) like Bitwig Studio. By exposing Bitwig's API through an MCP Server, Large Language Models (LLMs) can directly interact with the music production environment to perform tasks like:
+
 - Creating tracks
 - Controlling transport (Play, Stop, Restart)
 - Managing devices, arranging clips, and mixing.
 
 ## 🏗 Architecture
+
 The project consists of two main components communicating over a local TCP socket:
 
-1.  **MCP Server (`server-mcp/index.ts`, build output in `dist/index.js`)**
-    - A Node.js application that implements the Model Context Protocol.
-    - It listens for instructions from an MCP Client (like an AI Assistant).
-    - It acts as a TCP client and connects to Bitwig on port `8888` to relay commands.
+1. **MCP Server (`server-mcp-java/`, built via Gradle)**
+   
+   - A Java application that implements the Model Context Protocol using the official `io.modelcontextprotocol.sdk`.
+   - It listens for instructions from an MCP Client (like an AI Assistant) over Standard I/O.
+   - It acts as a TCP client and connects to Bitwig on port `8888` to relay commands.
+   - *(Note: The legacy TypeScript server remains in `server-mcp/` during the transition period).*
 
-2.  **Bitwig Controller Script (`bitwig-controller/controller-mcp.ts`, bundled to `bitwig-controller/controller-mcp.js`)**
-    - A Java/JavaScript extension running inside Bitwig Studio.
-    - It connects to the MCP Server via TCP.
-    - It executes the API commands (e.g., `application.createInstrumentTrack()`) received from the server.
+2. **Bitwig Controller Script (`bitwig-controller/controller-mcp.ts`, bundled to `bitwig-controller/controller-mcp.js`)**
+   
+   - A Java/JavaScript extension running inside Bitwig Studio.
+   - It connects to the MCP Server via TCP.
+   - It executes the API commands (e.g., `application.createInstrumentTrack()`) received from the server.
 
 ```mermaid
 graph LR
@@ -33,18 +39,21 @@ graph LR
 The following MCP capabilities are currently implemented:
 
 ### 🗄 Resources (Read State)
+
 - `bitwig://project/summary`: JSON overview of project state (transport, selection, etc.)
 - `bitwig://tracks`: List of all tracks
 - `bitwig://scenes`: List of all scenes
 - `bitwig://devices`: List of devices on the currently selected track
 
 ### 💬 Prompts (Templates)
+
 - `explain_project`: Fetches project structure and asks the AI to explain it.
 - `analyze_track`: Fetches the selected track's status and devices for analysis.
 
 ### 🛠 Tools (Actions)
 
 ### Transport
+
 - `transport_play`: Start playback
 - `transport_stop`: Stop playback
 - `transport_restart`: Restart playback
@@ -62,6 +71,7 @@ The following MCP capabilities are currently implemented:
 - `transport_continue_playback`, `transport_return_to_zero`, `transport_fast_forward`, `transport_rewind`, `transport_nudge_forward`, `transport_nudge_backward`: Navigate the timeline without restarting playback
 
 ### Track & Mixer
+
 - `track_bank_get_status`: Get info (name/vol/pan/mute/solo) for 8 tracks
 - `track_bank_set_volume`, `_pan`, `_mute`, `_solo`: Control tracks by bank index
 - `track_bank_select`: Select a track in the bank
@@ -77,11 +87,13 @@ The following MCP capabilities are currently implemented:
 - `track_bank_scroll_forward` / `_backward` / `_to_position`: Scroll the bank through the overall track list
 
 ### Cursor & Selection
+
 - `cursor_track_get_status`: Read the selected track's metadata, transport state, color, and mix settings
 - `cursor_device_get_status`: Inspect the currently selected device (expanded, enabled, window state)
 - `cursor_clip_get_status`: Inspect the currently selected clip (loop positions, play region, color)
 
 ### Testing
+
 - Phase 1 is covered by new automated tests:
   - `tests/test_phase1.ts` exercises the combined transport, browser, and track tools delivered so far.
   - `tests/test_transport.ts` now validates tap tempo, punch/overdub controls, and navigation tools.
@@ -90,16 +102,29 @@ The following MCP capabilities are currently implemented:
 ## 🚀 Installation
 
 ### 1. Prerequisites
+
 - [Node.js](https://nodejs.org/) (v16 or higher)
 - [Bitwig Studio](https://www.bitwig.com/) installed
 
 ### 2. Install Dependencies
-Clone this repository and install the Node.js dependencies:
+
+Clone this repository and install the dependencies:
+
+**For the Bitwig Controller (Node):**
+
 ```bash
 npm install
 ```
 
+**For the MCP Server (Java):**
+
+```bash
+cd server-mcp-java
+./gradlew build
+```
+
 ### 3. Install Bitwig Controller Script
+
 You need to install the controller script so Bitwig can load it.
 
 **Option A: Symbol Link (Recommended for development)**
@@ -117,6 +142,7 @@ cp "$(pwd)/bitwig-controller/controller-mcp.js" "$HOME/Documents/Bitwig Studio/C
 Copy `bitwig-controller/controller-mcp.js` into a controller folder under your Bitwig Controller Scripts directory.
 
 ### 4. Enable in Bitwig
+
 1. Open Bitwig Studio.
 2. Go to **Settings** > **Controllers**.
 3. Choose **Add controller manually**.
@@ -126,11 +152,15 @@ Copy `bitwig-controller/controller-mcp.js` into a controller folder under your B
 ## 💻 Usage
 
 ### 1. Start the MCP Server
-Run the Node.js server. It listens on standard input/output for MCP, connects to Bitwig via TCP on port `8888`, and opens a WebSocket server on port `2624` by default (configurable via `BITWIG_MCP_WS_PORT`).
+
+Run the Java server using Gradle. It listens on standard input/output for MCP, and connects to Bitwig via TCP on port `8888`.
 
 ```bash
-node dist/index.js
+cd server-mcp-java
+./gradlew run
 ```
+
+*(Alternatively, to run the legacy Node server: `node server-mcp/dist/index.js`)*
 
 ### Controller Build (Bitwig)
 
@@ -143,10 +173,13 @@ pnpm run build:controller
 Running this command compiles `bitwig-controller/controller-mcp.ts` into one IIFE bundle with all modules inlined and overwrites `bitwig-controller/controller-mcp.js`, which is the file you drop into Bitwig's Controller Scripts directory.
 
 ### 2. Connect your AI Agent
+
 Configure your MCP Client (e.g., Claude Desktop, Zed, or other MCP-compliant tools) to run the command above.
 
 ### 3. Example Prompts
+
 Once connected, you can ask your AI Agent:
+
 > "Add a new instrument track in Bitwig."
 > "Start playback."
 > "Stop the music."
@@ -156,6 +189,7 @@ Once connected, you can ask your AI Agent:
 For testing the MCP server with an actual LLM agent flow (simulated via CLI), use the dedicated test environment.
 
 ### Quick Start
+
 ```bash
 ./tests/test-env/run-llm-test.sh
 ```

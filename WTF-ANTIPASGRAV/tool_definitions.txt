@@ -1,0 +1,110 @@
+      // --- Note Input Advanced ---
+      {
+        name: "note_input_assign_expression",
+        description: "Assign polyphonic aftertouch to a note expression (MPE)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            channel: { type: "number", description: "MIDI channel (0-15)" },
+            expression: { type: "string", enum: ["NONE", "PITCH", "TIMBRE", "PRESSURE"] },
+            pitchRange: { type: "number", description: "Pitch range in semitones" }
+          },
+          required: ["channel", "expression", "pitchRange"]
+        }
+      },
+      {
+        name: "note_input_set_mpe",
+        description: "Enable or disable MPE (Multidimensional Polyphonic Expression)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            enabled: { type: "boolean" },
+            baseChannel: { type: "number", description: "Base channel (0-15)" },
+            pitchBendRange: { type: "number", description: "Pitch bend range in semitones" }
+          },
+          required: ["enabled", "baseChannel", "pitchBendRange"]
+        }
+      },
+      {
+        name: "note_input_set_key_translation",
+        description: "Set the key translation table (128 entries)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            table: { type: "array", items: { type: "number" } }
+          },
+          required: ["table"]
+        }
+      },
+      {
+        name: "note_input_set_velocity_translation",
+        description: "Set the velocity translation table (128 entries)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            table: { type: "array", items: { type: "number" } }
+          },
+          required: ["table"]
+        }
+      },
+      // --- Drum Pad Tools ---
+      {
+        name: "drumpad_get_status",
+        description: "Get status of the drum pads for the selected device",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "drumpad_select",
+        description: "Select a drum pad by index",
+        inputSchema: {
+          type: "object",
+          properties: { index: { type: "number" } },
+          required: ["index"]
+        }
+      },
+      {
+        name: "drumpad_scroll_forward",
+        description: "Scroll drum pad bank forward",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "drumpad_scroll_backward",
+        description: "Scroll drum pad bank backward",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "drumpad_set_volume",
+        description: "Set drum pad volume",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number" },
+            value: { type: "number", description: "0.0 to 1.0" }
+          },
+          required: ["index", "value"]
+        }
+      },
+      {
+        name: "drumpad_set_mute",
+        description: "Set drum pad mute state",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number" },
+            state: { type: "boolean" }
+          },
+          required: ["index", "state"]
+        }
+      },
+      {
+        name: "drumpad_set_solo",
+        description: "Set drum pad solo state",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number" },
+            state: { type: "boolean" }
+          },
+          required: ["index", "state"]
+        }
+      },

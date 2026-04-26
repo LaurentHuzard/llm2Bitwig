@@ -16,6 +16,68 @@
         case "application.createEffectTrack":
           this.application.createEffectTrack(-1);
           return "OK";
+        // Edit Commands
+        case "application.undo":
+          this.application.undo();
+          return "OK";
+        case "application.redo":
+          this.application.redo();
+          return "OK";
+        case "application.cut":
+          this.application.cut();
+          return "OK";
+        case "application.copy":
+          this.application.copy();
+          return "OK";
+        case "application.paste":
+          this.application.paste();
+          return "OK";
+        case "application.delete":
+          this.application.remove();
+          return "OK";
+        case "application.duplicate":
+          this.application.duplicate();
+          return "OK";
+        case "application.select_all":
+          this.application.selectAll();
+          return "OK";
+        case "application.select_none":
+          this.application.selectNone();
+          return "OK";
+        // Navigation
+        case "application.arrow_key":
+          if (_params && _params[0]) {
+            const dir = _params[0];
+            switch (dir) {
+              case "up":
+                this.application.arrowKeyUp();
+                break;
+              case "down":
+                this.application.arrowKeyDown();
+                break;
+              case "left":
+                this.application.arrowKeyLeft();
+                break;
+              case "right":
+                this.application.arrowKeyRight();
+                break;
+            }
+            return "OK";
+          }
+          throw "Missing direction for arrow_key";
+        case "application.enter":
+          this.application.enter();
+          return "OK";
+        case "application.escape":
+          this.application.escape();
+          return "OK";
+        // View
+        case "application.zoom_in":
+          this.application.zoomIn();
+          return "OK";
+        case "application.zoom_out":
+          this.application.zoomOut();
+          return "OK";
       }
       return void 0;
     }
@@ -1052,6 +1114,464 @@
         case "transport.nudge_backward":
           this.transport.incPosition(-1, false);
           return "OK";
+        case "transport.add_cue_marker":
+          this.transport.addCueMarkerAtPlaybackPosition();
+          return "OK";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/HardwareSurface.ts
+  var HardwareSurfaceModule = class {
+    constructor(host2) {
+      this.controls = /* @__PURE__ */ new Map();
+      this.surface = host2.createHardwareSurface();
+    }
+    handleRequest(method, params) {
+      var _a;
+      switch (method) {
+        case "hardware.create_slider":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const id = params[0];
+            const label = params[1];
+            const isHorizontal = params[2];
+            this.createSlider(id, label, isHorizontal);
+            return "OK";
+          }
+          throw "Missing parameters (id, label)";
+        case "hardware.create_knob":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const id = params[0];
+            const label = params[1];
+            const isAbsolute = params[2];
+            this.createKnob(id, label, isAbsolute);
+            return "OK";
+          }
+          throw "Missing parameters (id, label)";
+        case "hardware.create_button":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const id = params[0];
+            const label = params[1];
+            this.createButton(id, label);
+            return "OK";
+          }
+          throw "Missing parameters (id, label)";
+        case "hardware.create_light":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const id = params[0];
+            const label = params[1];
+            const linkedButtonId = params[2];
+            this.createLight(id, label, linkedButtonId);
+            return "OK";
+          }
+          throw "Missing parameters (id, label)";
+        case "hardware.bind_cc":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            const id = params[0];
+            const channel = params[1];
+            const cc = params[2];
+            const isAbsolute = (_a = params[3]) != null ? _a : true;
+            this.bindCC(id, channel, cc, isAbsolute);
+            return "OK";
+          }
+          throw "Missing parameters (id, channel, cc)";
+        case "hardware.bind_note":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            const id = params[0];
+            const channel = params[1];
+            const note = params[2];
+            this.bindNote(id, channel, note);
+            return "OK";
+          }
+          throw "Missing parameters (id, channel, note)";
+        case "hardware.update":
+          this.surface.updateHardware();
+          return "OK";
+        case "hardware.invalidate":
+          this.surface.invalidateHardwareOutputState();
+          return "OK";
+        case "hardware.get_controls":
+          return this.getControls();
+        // Inspection of controls
+        case "hardware.control.get_value":
+          if (params && params[0] !== void 0) {
+            return this.getControlValue(params[0]);
+          }
+          throw "Missing parameter (id)";
+      }
+      return void 0;
+    }
+    createSlider(id, label, isHorizontal) {
+      const slider = this.surface.createHardwareSlider(id);
+      slider.setLabel(label);
+      if (isHorizontal) {
+        slider.setOrientation(Orientation.HORIZONTAL);
+      } else {
+        slider.setOrientation(Orientation.VERTICAL);
+      }
+      slider.value().markInterested();
+      this.controls.set(id, slider);
+    }
+    createKnob(id, label, isAbsolute) {
+      if (isAbsolute) {
+        const knob = this.surface.createAbsoluteHardwareKnob(id);
+        knob.setLabel(label);
+        knob.value().markInterested();
+        this.controls.set(id, knob);
+      } else {
+        const knob = this.surface.createRelativeHardwareKnob(id);
+        knob.setLabel(label);
+        this.controls.set(id, knob);
+      }
+    }
+    createButton(id, label) {
+      const button = this.surface.createHardwareButton(id);
+      button.setLabel(label);
+      button.isPressed().markInterested();
+      this.controls.set(id, button);
+    }
+    createLight(id, label, linkedButtonId) {
+      const light = this.surface.createMultiStateHardwareLight(id);
+      light.setLabel(label);
+      light.isOn().markInterested();
+      light.color().markInterested();
+      if (linkedButtonId) {
+        const button = this.controls.get(linkedButtonId);
+        if (button && "setBackgroundLight" in button) {
+          button.setBackgroundLight(light);
+        }
+      }
+      this.controls.set(id, light);
+    }
+    bindCC(id, channel, cc, isAbsolute) {
+      const control = this.controls.get(id);
+      if (!control) throw `Control not found: ${id}`;
+      const port = host.getMidiIn(0);
+      if (isAbsolute) {
+        const matcher = port.createAbsoluteCCValueMatcher(channel, cc);
+        if ("setAdjustValueMatcher" in control) {
+          control.setAdjustValueMatcher(matcher);
+        }
+      } else {
+        const matcher = port.createRelativeSignedBitCCValueMatcher(channel, cc, 128);
+        if ("setAdjustValueMatcher" in control) {
+          control.setAdjustValueMatcher(matcher);
+        }
+      }
+      if ("pressedAction" in control) {
+        const actionMatcher = port.createCCActionMatcher(channel, cc, 127);
+        control.pressedAction().setActionMatcher(actionMatcher);
+      }
+    }
+    bindNote(id, channel, note) {
+      const control = this.controls.get(id);
+      if (!control) throw `Control not found: ${id}`;
+      const port = host.getMidiIn(0);
+      if ("pressedAction" in control) {
+        const matcher = port.createNoteOnActionMatcher(channel, note);
+        control.pressedAction().setActionMatcher(matcher);
+      } else {
+        throw "Binding notes to non-buttons not fully supported yet";
+      }
+    }
+    getControls() {
+      const list = [];
+      this.controls.forEach((control, id) => {
+        let type = "unknown";
+        if ("value" in control) {
+          type = "knob/slider";
+        } else if ("isPressed" in control) {
+          type = "button";
+        }
+        list.push({
+          id,
+          label: control.getName(),
+          type
+        });
+      });
+      return list;
+    }
+    getControlValue(id) {
+      const control = this.controls.get(id);
+      if (!control) throw `Control not found: ${id}`;
+      const c = control;
+      if (typeof c.value === "function") {
+        return c.value().get();
+      }
+      if (typeof c.isPressed === "function") {
+        return c.isPressed().get();
+      }
+      return null;
+    }
+  };
+
+  // bitwig-controller/modules/Arranger.ts
+  var ArrangerModule = class {
+    constructor(host2, sendEvent, application) {
+      this.arranger = host2.createArranger();
+      this.cueMarkerBank = this.arranger.createCueMarkerBank(32);
+      this.sendEvent = sendEvent;
+      this.application = application;
+      this.arranger.isTimelineVisible().markInterested();
+      this.arranger.isIoSectionVisible().markInterested();
+      this.arranger.isClipLauncherVisible().markInterested();
+      this.arranger.areEffectTracksVisible().markInterested();
+      this.arranger.hasDoubleRowTrackHeight().markInterested();
+      this.arranger.areCueMarkersVisible().markInterested();
+      this.arranger.isPlaybackFollowEnabled().markInterested();
+      this.cueMarkerBank.cursorIndex().markInterested();
+      this.cueMarkerBank.itemCount().markInterested();
+      for (let i = 0; i < 32; i++) {
+        const marker = this.cueMarkerBank.getItemAt(i);
+        marker.name().markInterested();
+        marker.position().markInterested();
+        marker.color().markInterested();
+        marker.exists().markInterested();
+      }
+    }
+    handleRequest(method, params) {
+      const args = params;
+      switch (method) {
+        case "arranger.get_status":
+          return {
+            isTimelineVisible: this.arranger.isTimelineVisible().get(),
+            isIoSectionVisible: this.arranger.isIoSectionVisible().get(),
+            isClipLauncherVisible: this.arranger.isClipLauncherVisible().get(),
+            areEffectTracksVisible: this.arranger.areEffectTracksVisible().get(),
+            hasDoubleRowTrackHeight: this.arranger.hasDoubleRowTrackHeight().get(),
+            areCueMarkersVisible: this.arranger.areCueMarkersVisible().get(),
+            isPlaybackFollowEnabled: this.arranger.isPlaybackFollowEnabled().get()
+          };
+        case "arranger.set_panel_visibility":
+          if (!args || args.length < 2) throw "Missing params. Expecting [panel_name, state]";
+          const panel = args[0];
+          const state = args[1];
+          switch (panel) {
+            case "timeline":
+              this.arranger.isTimelineVisible().set(state);
+              break;
+            case "io":
+              this.arranger.isIoSectionVisible().set(state);
+              break;
+            case "clip_launcher":
+              this.arranger.isClipLauncherVisible().set(state);
+              break;
+            case "effect_tracks":
+              this.arranger.areEffectTracksVisible().set(state);
+              break;
+            case "double_row_height":
+              this.arranger.hasDoubleRowTrackHeight().set(state);
+              break;
+            case "cue_markers":
+              this.arranger.areCueMarkersVisible().set(state);
+              break;
+            case "playback_follow":
+              this.arranger.isPlaybackFollowEnabled().set(state);
+              break;
+            default:
+              throw `Unknown panel: ${panel}`;
+          }
+          return "OK";
+        case "arranger.zoom":
+          if (!args || args.length < 1) throw "Missing zoom action";
+          const action = args[0];
+          switch (action) {
+            case "in_all":
+              this.arranger.zoomInLaneHeightsAll();
+              break;
+            case "out_all":
+              this.arranger.zoomOutLaneHeightsAll();
+              break;
+            case "in_selected":
+              this.arranger.zoomInLaneHeightsSelected();
+              break;
+            case "out_selected":
+              this.arranger.zoomOutLaneHeightsSelected();
+              break;
+            default:
+              throw `Unknown zoom action: ${action}`;
+          }
+          return "OK";
+        case "arranger.cues.list":
+          const markers = [];
+          for (let i = 0; i < 32; i++) {
+            const marker = this.cueMarkerBank.getItemAt(i);
+            if (marker.exists().get()) {
+              markers.push({
+                index: i,
+                name: marker.name().get(),
+                position: marker.position().get(),
+                color: {
+                  r: marker.color().red(),
+                  g: marker.color().green(),
+                  b: marker.color().blue()
+                }
+              });
+            }
+          }
+          return markers;
+        case "arranger.cues.jump":
+          if (args && args[0] !== void 0) {
+            const index = args[0];
+            const marker = this.cueMarkerBank.getItemAt(index);
+            if (marker.exists().get()) {
+              marker.launch(true);
+              return "OK";
+            } else {
+              throw `Marker at index ${index} does not exist`;
+            }
+          }
+          throw "Missing marker index";
+        case "arranger.cues.create":
+          throw "Use transport.add_cue_marker to create cues at playback position.";
+        case "arranger.cues.rename":
+          if (args && args[0] !== void 0 && args[1] !== void 0) {
+            const index = args[0];
+            const name = args[1];
+            const marker = this.cueMarkerBank.getItemAt(index);
+            if (marker.exists().get()) {
+              marker.name().set(name);
+              return "OK";
+            }
+            throw `Marker at index ${index} does not exist`;
+          }
+          throw "Missing parameters (index, name)";
+        case "arranger.cues.color":
+          if (args && args.length >= 4) {
+            const index = args[0];
+            const r = args[1];
+            const g = args[2];
+            const b = args[3];
+            const marker = this.cueMarkerBank.getItemAt(index);
+            if (marker.exists().get()) {
+              marker.color().set(r, g, b);
+              return "OK";
+            }
+            throw `Marker at index ${index} does not exist`;
+          }
+          throw "Missing parameters (index, r, g, b)";
+        case "arranger.cues.launch":
+          if (args && args[0] !== void 0) {
+            const index = args[0];
+            const marker = this.cueMarkerBank.getItemAt(index);
+            if (marker.exists().get()) {
+              marker.launch(true);
+              return "OK";
+            }
+            throw `Marker at index ${index} does not exist`;
+          }
+          throw "Missing parameters (index)";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/NoteInput.ts
+  var NoteInputModule = class {
+    constructor(host2) {
+      this.noteInput = host2.getMidiIn(0).createNoteInput("MCP Notes", "80????", "90????", "A0????", "B0????", "D0????", "E0????");
+      this.noteInput.setShouldConsumeEvents(false);
+    }
+    handleRequest(method, params) {
+      const args = params;
+      switch (method) {
+        case "note_input.send_raw_midi":
+          if (!args || args.length < 3) throw "Missing params. Expecting [status, data1, data2]";
+          this.noteInput.sendRawMidiEvent(args[0], args[1], args[2]);
+          return "OK";
+        case "note_input.send_note_on":
+          if (!args || args.length < 3) throw "Missing params. Expecting [channel, key, velocity]";
+          this.noteInput.sendNoteOn(args[0], args[1], args[2]);
+          return "OK";
+        case "note_input.send_note_off":
+          if (!args || args.length < 3) throw "Missing params. Expecting [channel, key, velocity]";
+          this.noteInput.sendNoteOff(args[0], args[1], args[2]);
+          return "OK";
+        case "note_input.send_poly_aftertouch":
+          if (!args || args.length < 3) throw "Missing params. Expecting [channel, key, pressure]";
+          this.noteInput.sendPolyphonicAftertouch(args[0], args[1], args[2]);
+          return "OK";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Midi.ts
+  var MidiModule = class {
+    constructor(host2, sendEvent) {
+      this.sendEvent = sendEvent;
+      this.midiIn = host2.getMidiIn(0);
+      this.midiOut = host2.getMidiOutPort(0);
+      this.midiIn.setMidiCallback((status, data1, data2) => {
+        this.sendEvent("midi.short_message", { status, data1, data2 });
+      });
+      this.midiIn.setSysexCallback((data) => {
+        this.sendEvent("midi.sysex", { data });
+      });
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "midi.send_short":
+          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
+            this.midiOut.sendMidi(params[0], params[1], params[2]);
+            return "OK";
+          }
+          throw "Missing parameters (status, data1, data2)";
+        case "midi.send_sysex":
+          if (params && params[0] !== void 0) {
+            this.midiOut.sendSysex(params[0]);
+            return "OK";
+          }
+          throw "Missing parameter (hexString)";
+      }
+      return void 0;
+    }
+  };
+
+  // bitwig-controller/modules/Osc.ts
+  var OscModule = class {
+    constructor(host2, sendEvent) {
+      this.sendEvent = sendEvent;
+      this.oscConnection = null;
+      this.oscModule = host2.getOscModule();
+      this.oscAddressSpace = this.oscModule.createAddressSpace();
+      this.oscAddressSpace.registerDefaultMethod((connection, message) => {
+        this.sendEvent("osc.message", {
+          addressPattern: message.getAddressPattern(),
+          typeTagPattern: message.getTypeTagPattern(),
+          arguments: message.getArguments()
+        });
+      });
+    }
+    handleRequest(method, params) {
+      switch (method) {
+        case "osc.start_server":
+          if (params && params[0] !== void 0) {
+            const port = params[0];
+            this.oscModule.createUdpServer(port, this.oscAddressSpace);
+            return "OK";
+          }
+          throw "Missing parameter (port)";
+        case "osc.connect":
+          if (params && params[0] !== void 0 && params[1] !== void 0) {
+            const host2 = params[0];
+            const port = params[1];
+            this.oscConnection = this.oscModule.connectToUdpServer(host2, port, this.oscAddressSpace);
+            return "OK";
+          }
+          throw "Missing parameters (host, port)";
+        case "osc.send":
+          if (this.oscConnection) {
+            if (params && params[0] !== void 0) {
+              const address = params[0];
+              const args = params.slice(1);
+              this.oscConnection.sendMessage(address, ...args);
+              return "OK";
+            }
+            throw "Missing parameter (address)";
+          }
+          throw "OSC Connection not established. Call osc.connect first.";
       }
       return void 0;
     }
@@ -1073,10 +1593,16 @@
     modules.push(new SceneBankModule(host));
     modules.push(new MixerModule(host));
     modules.push(new CursorModule(host, sendEvent));
-    modules.push(new ApplicationModule(host));
+    const applicationModule = new ApplicationModule(host);
+    modules.push(applicationModule);
     modules.push(new DeviceModule(trackBankModule.trackBank));
     modules.push(new ClipModule(host, sendEvent));
     modules.push(new BrowserModule(host));
+    modules.push(new HardwareSurfaceModule(host));
+    modules.push(new ArrangerModule(host, sendEvent, applicationModule.application));
+    modules.push(new NoteInputModule(host));
+    modules.push(new MidiModule(host, sendEvent));
+    modules.push(new OscModule(host, sendEvent));
     println(`BitwigPOC Initialized with ${modules.length} modules (v0.2)`);
     const remoteSocket = host.createRemoteConnection("BitwigMCP", 8888);
     remoteSocket.setClientConnectCallback((remoteConnection) => {
@@ -1124,7 +1650,8 @@
         },
         mixer: {
           masterVolume: null
-        }
+        },
+        arranger: null
       };
       for (const module of modules) {
         try {
@@ -1138,6 +1665,9 @@
           }
           if (module instanceof MixerModule) {
             summary.mixer.masterVolume = module.handleRequest("mixer.master.get_volume");
+          }
+          if (module instanceof ArrangerModule) {
+            summary.arranger = module.handleRequest("arranger.get_status");
           }
         } catch (e) {
         }

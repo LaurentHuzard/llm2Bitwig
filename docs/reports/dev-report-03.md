@@ -9,6 +9,7 @@
 ---
 
 ## 🚀 The Headline
+
 **"The DAW Gets Serious Controls"**
 
 Phase 1 shipped the kind of control surface features that make this project feel less like a demo and more like a remote operator: punch, overdub, timeline navigation, richer track metadata, and cursor-level introspection. Phase 0 landed the pragmatic fix that unblocked an important workflow: the Browser filter is no longer a stub.
@@ -18,9 +19,11 @@ Phase 1 shipped the kind of control surface features that make this project feel
 ## 🛠 What We Built
 
 ### 1. Phase 0: Browser Parity Fix
+
 We implemented `browser_set_filter` in the controller so the popup browser can be filtered programmatically (wildcard filter, first column).
 
 ### 2. Phase 1: Transport Grows Beyond Play/Stop
+
 The transport API now supports practical recording workflows and navigation:
 
 - **Tap tempo**: `transport_tap_tempo`
@@ -37,6 +40,7 @@ The transport API now supports practical recording workflows and navigation:
   - `transport_nudge_forward`, `transport_nudge_backward`
 
 ### 3. Track Introspection and Bank Navigation
+
 Track management moved from "blind bank control" toward discovery and inspection:
 
 - `track_list`: List the current track bank with metadata (name/type/position/group/color)
@@ -45,6 +49,7 @@ Track management moved from "blind bank control" toward discovery and inspection
 - Bank scrolling: `track_bank_scroll_forward`, `track_bank_scroll_backward`, `track_bank_scroll_to_position`
 
 ### 4. Cursor-Level Status (Selection Awareness)
+
 Selection is now queryable as structured state:
 
 - `cursor_track_get_status`
@@ -52,6 +57,7 @@ Selection is now queryable as structured state:
 - `cursor_clip_get_status`
 
 ### 5. Project Summary Becomes a Real Snapshot
+
 `project_get_summary` was extended to include a richer transport snapshot (including loop/punch/overdub), the current selection (track/device/clip), and master volume.
 
 ---

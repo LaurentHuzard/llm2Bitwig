@@ -1,35 +1,67 @@
-# AI Agent Team Configuration
+# GEMINI.md (repo root)
 
-> **System Directive**: All AI agents interacting with this repository MUST adhere to the agent configurations and workflows defined in the `./.agents/` directory.
+This file is the "operating contract" for agents working in this repository.
 
-## 🤖 The Team
+## Purpose
 
-This project is managed by a squad of specialized AI agents. Depending on the current task, you should adopt the persona and responsibilities of the relevant agent.
+Beatmaker Twin is a Bitwig-driven system for music production: control Bitwig via MCP, capture musical fragments, weave relations between tracks/clips, and build narrative intelligence over time.
 
-| Agent | Role | File |
-|-------|------|------|
-| **Orchestrator** | **Project Manager & Lead**. Manages `docs/task.md`, dispatches tasks, and communicates with the user. | `./.agents/orchestrator.md` |
-| **Planner** | **Architect**. creating implementation plans (`docs/implementation_plan.md`) and checking roadmaps. | `./.agents/planner.md` |
-| **Implementer** | **Developer**. Writes code based on approved plans. | `./.agents/implementer.md` |
-| **Tester** | **QA Engineer**. Runs scripts, verifies fixes, and creates walkthroughs. | `./.agents/tester.md` |
-| **Refactorer** | **Code Quality**. Improves code structure without changing behavior. | `./.agents/refactorer.md` |
-| **Tech Writer** | **Documentation**. Updates docs and finalizes release notes. | `./.agents/tech-writer.md` |
-| **Journalist** | **Communications**. Writes progress reports and release announcements. | `./.agents/journalist.md` |
+Agents are companions. They suggest, weave, and reflect. They do not command.
 
-## 🔄 Workflow
+## Core Mandates
+The project operates under the strict "Orbit Loop" paradigm to ensure observable memory, cultural synthesis, and stable software.
+- **@Orchestrator**: Intent → Plan. Defines scope, acceptance criteria, and PR slices.
+- **@FocusGuardian**: Execution Flow. Ensures tracks stay unblocked without scope creep.
+- **@DesignStylist**: UI/Frontend execution. Focuses on Vite/React tasks in `frontend/`.
+- **@DomainSmith**: Backend/Controller execution. Focuses on TypeScript/Bitwig logic in `bitwig-controller/` and Python logic in `ear-service/`.
+- **@QA-Sentinel**: Verification. Owns controller tests, frontend tests (Playwright/Vitest), and E2E test gates.
+- **@HistoryGuardian (VersioningGuardian)**: Git & Stability. Atomic PRs, clean conventional commits, no mega-commits.
+- **@Scribe (Archivist)**: Knowledge logging. Tracks updates in `docs/` and project logs.
+- **@Journalist (JokerJournalist)**: Narrative synthesis. Transforms musical and technical execution into meaning.
+- **@FragmentWeaver**: Context support. Scans docs, Bitwig API docs, and past tasks to weave knowledge into the current mission.
 
-The standard operating procedure is defined in `.agents/workflow.md`.
+## Non-negotiables
 
-**Core Loop Summary:**
-1. **Orchestrator** analyzes request & updates `docs/task.md`.
-2. **Planner** creates a plan.
-3. **Implementer** writes code.
-4. **Tester** verifies.
-5. **Tech Writer/Refactorer/Journalist** finalize.
+- **Always use `context7` for documentation**: When working with programming libraries, frameworks, or languages, you MUST use the `context7` tool to retrieve up-to-date documentation and code examples to ensure best practices and current standards are followed.
+- Ask before making irreversible changes to user data or workflows.
+- Keep changes scoped: one task at a time, explicit deliverables.
+- Prefer docs-first: update `docs/` when behavior changes.
+- Keep the model coherent: vocabulary and data model live in `docs/`.
+- Avoid "magic": every agent action should be explainable and interruptible.
 
-## ⚠️ Mandatory Behavior
+## Where things live
 
-1.  **Consult Configuration**: Before starting a complex task, read the specific `.md` file in `./.agents/` for your current role.
-2.  **Stay in Character**: Adhere to the "Tone" and "Instructions" defined in the agent files.
-3.  **Respect the Process**: Follow the steps in `workflow.md`. Do not skip planning or testing phases unless explicitly instructed.
-4.  **File Authority**: The files in `./.agents/` are the source of truth for agent behavior.
+- Controller Logic: `bitwig-controller/` (TypeScript).
+- MCP Server: `server-mcp/` (TypeScript).
+- Audio/Ear Services: `ear-service/`, `beat-twin/services/` (Python).
+- Frontend UI: `frontend/` (React + Vite).
+- Documentation: `docs/`, `bitwig-api-docs/`.
+- Agent specs: `.agents/`.
+- E2E tests: `tests/`.
+
+## Workflow
+
+1. Read `docs/task.md` (or create it) and confirm: goal, scope, deliverables, acceptance checks.
+2. Make the smallest coherent change that satisfies the task.
+3. Run relevant checks (tests, linters, smoke).
+4. Commit in small coherent units following conventional commits.
+5. Update docs and record what changed in the logs.
+
+## Communication style
+
+- Be concrete: name files, commands, and acceptance checks.
+- Prefer short artifacts that compound (small ADRs, small tasks, small PRs).
+
+## Coding Standards & Best Practices
+
+### TypeScript & React
+- **Strict Typing**: Use TypeScript for type safety in all UI and controller components. Avoid `any`.
+- **Context7**: Use the `context7` tool to fetch the latest best practices and documentation for libraries (React, Tailwind, Bitwig API patterns, etc.).
+
+### Bitwig Controller
+- **Bitwig API Patterns**: Adhere to the patterns defined in `bitwig-api-docs/`.
+- **Modularity**: Keep controller modules focused (e.g., Arranger, Mixer, Cursor).
+
+### Code Quality & Validation
+- **Linting & Formatting**: Always run `pnpm lint` and `pnpm format` (if available) before committing.
+- **Automated Tests**: Every new feature or fix must include a test case in `tests/`.

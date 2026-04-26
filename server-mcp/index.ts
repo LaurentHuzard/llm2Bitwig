@@ -178,12 +178,7 @@ function startWebSocketServer(): void {
     ws.on("message", (message: RawData) => {
       try {
         const data = JSON.parse(String(message)) as WsCallMessage;
-        // Expecting { method: "...", params: [...] } from UI
-        // We can reuse callBitwig (which wraps in JSON-RPC) or send raw if the UI sends raw JSON-RPC
-        // For simplicity, let's assume UI sends { action: "call", method: "...", params: [...] }
-
         if (data.action === "call") {
-          // Use shared tool execution logic
           executeTool(data.method, (data.params ?? {}) as ToolArgs)
             .then(result => {
               ws.send(JSON.stringify({ id: data.id, result }));
@@ -254,137 +249,47 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const data = await callBitwig("track.list");
       content = JSON.stringify(data, null, 2);
     } else if (uri === "bitwig://devices") {
-      // Get devices for currently selected track (no index provided to get selected)
-      // But device.list requires trackIndex usually if we want specific track.
-      // Let's check existing implementation. device.list takes [trackIndex].
-      // If we want "selected track", we might need to get selected track index first or use a new method.
-      // However, looking at the tool `device_list`, it requires `trackIndex`.
-      // Let's assume we want the *cursor* track's devices.
-      // But `device.list` implementation in previous turns showed it takes `trackIndex`.
-      // Let's try to pass -1 or see if there is a "selected" variant.
-      // Actually, `device.list` implementation likely iterates over a specific bank.
-      // For now, let's just return "Not implemented for generic read" or try to fetch for track 0 as example?
-      // Better: `bitwig://tracks/0/devices`, but `ReadResource` URI is exact match for now.
-      // Let's fetch for the *selected* track.
-      // We need to know which track is selected.
-      // `track.selected.get_status` might have index?
-      // Let's use `project.get_summary` which has `track_selection`.
-      // For simplicity in this iteration, let's map `bitwig://devices` to "devices on the first track" or handle it gracefully.
-      // OR better, let's implement `device.list` to accept an optional index, defaulting to selected?
-      // The tool definition for `device_list` required `trackIndex`.
-      // Let's skip `bitwig://devices` for now to avoid runtime errors, or map it to track 0.
-      // Actually, let's stick to `project/summary` and `tracks` which are safe globally.
-      // I'll leave `bitwig://devices` but return a helpful message if I can't determine context.
-      // Actually, let's implement `bitwig://devices` as "devices on the implementation's 'cursor track'".
-      // We can call `callBitwig("device.list", [ -1 ])` if the controller supports it?
-      // The controller code is in `bitwig-controller/controller-mcp.ts`. I haven't read it fully.
-      // Let's assume for now I can only easily get global lists without params.
-      // I will remove `bitwig://devices` from the list for now to be safe,
-      // and instead add `bitwig://scenes` which is global.
-      const data = await callBitwig("scene.list");
-      content = JSON.stringify(data, null, 2);
-      // Wait, I said uri "bitwig://devices" above. I should change the registration too.
-      // Let's proceed with `tracks` and `project/summary` for sure.
-    } else if (uri === "bitwig://scenes") {
-      const data = await callBitwig("scene.list");
+      const data = await callBitwig("device.list");
       content = JSON.stringify(data, null, 2);
     }
-    else {
-      throw new Error(`Resource not found: ${uri}`);
-    }
-  } catch (err) {
-    throw new Error(`Failed to read resource ${uri}: ${err}`);
-  }
 
-  return {
-    contents: [
-      {
-        uri: uri,
-        mimeType: "application/json",
-        text: content
-      }
-    ]
-  };
-});
-
-// --- Prompts Implementation ---
-server.setRequestHandler(ListPromptsRequestSchema, async () => {
-  return {
-    prompts: [
-      {
-        name: "explain_project",
-        description: "Explain the current project structure and state",
-      },
-      {
-        name: "analyze_track",
-        description: "Analyze the currently selected track",
-      }
-    ]
-  };
-});
-
-server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-  const name = request.params.name;
-
-  if (name === "explain_project") {
-    const project = await callBitwig("project.get_summary");
-    const tracks = await callBitwig("track.list");
-    const prompt = `Here is the current Bitwig project state:\n\nProject Summary:\n${JSON.stringify(project, null, 2)}\n\nTrack List:\n${JSON.stringify(tracks, null, 2)}\n\nPlease explain the structure of this project.`;
     return {
-      messages: [
+      contents: [
         {
-          role: "user",
-          content: { type: "text", text: prompt }
-        }
-      ]
+          uri,
+          mimeType: "application/json",
+          text: content,
+        },
+      ],
     };
+  } catch (error) {
+    throw new Error(`Failed to read resource ${uri}: ${String(error)}`);
   }
-
-  if (name === "analyze_track") {
-    const track = await callBitwig("track.selected.get_status");
-    // We might want devices too.
-    // Let's try to get devices for selected track.
-    // We need the index. `track` object likely has `index` property?
-    // Let's assume we just provide the detailed status for now.
-    const prompt = `Here is the status of the currently selected track:\n${JSON.stringify(track, null, 2)}\n\nPlease analyze this track's settings.`;
-    return {
-      messages: [
-        {
-          role: "user",
-          content: { type: "text", text: prompt }
-        }
-      ]
-    };
-  }
-
-  throw new Error("Prompt not found");
 });
 
-
-// --- Tool Definitions ---
-
+// --- Tool Implementation ---
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       // --- Ear Tools ---
       {
         name: "ear_status",
-        description: "Check if the Audio Ear service is running and receiving audio.",
+        description: "Get the current status and levels from the ear-service",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "ear_get_levels",
-        description: "Get current audio levels (Peak/RMS for Left/Right).",
+        description: "Get real-time peak and RMS levels",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "ear_list_devices",
-        description: "List available audio input devices.",
+        description: "List available audio input devices for the ear",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "ear_set_device",
-        description: "Set the active audio input device by index.",
+        description: "Set the active audio input device",
         inputSchema: {
           type: "object",
           properties: {
@@ -395,24 +300,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "ear_listen",
-        description: "Listen to the last N seconds of audio and return it as a WAV file (base64 encoded). Captures continuous buffer from selected device.",
+        description: "Capture the last N seconds of audio as base64 WAV",
         inputSchema: {
           type: "object",
           properties: {
-            seconds: { type: "number", description: "Number of seconds to retrieve (default 5, max 10)" },
+            seconds: { type: "number", description: "Seconds to capture (max 10)", default: 5 },
           },
         },
       },
       {
         name: "ear_analyze",
-        description: "Analyze the last N seconds of audio for spectral features (bands, brightness, loudness), Tempo (BPM), and Key (e.g. C# Major). Returns detailed musical analysis.",
+        description: "Analyze the last N seconds of audio (BPM, Key, Spectral Energy)",
         inputSchema: {
           type: "object",
           properties: {
-            seconds: { type: "number", description: "Number of seconds to analyze (default 1.0, minimum 3.0 recommended for tempo/key)" },
+            seconds: { type: "number", description: "Seconds to analyze", default: 1.0 },
           },
         },
       },
+      // --- Transport Tools ---
       {
         name: "transport_play",
         description: "Start playback in Bitwig",
@@ -425,38 +331,38 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "transport_restart",
-        description: "Restart playback from the beginning",
+        description: "Restart playback from current position",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "transport_record",
-        description: "Toggle recording",
+        description: "Toggle arranger recording",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "transport_get_tempo",
-        description: "Get the current tempo (BPM)",
+        description: "Get the project tempo (BPM)",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "transport_set_tempo",
-        description: "Set the tempo (BPM)",
+        description: "Set the project tempo (BPM)",
         inputSchema: {
           type: "object",
           properties: {
-            bpm: { type: "number", description: "Tempo in Beats Per Minute" },
+            bpm: { type: "number", description: "BPM value" },
           },
           required: ["bpm"],
         },
       },
       {
         name: "transport_get_position",
-        description: "Get current playhead position in beats",
+        description: "Get the current playhead position in beats",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "transport_set_position",
-        description: "Set playhead position in beats",
+        description: "Set the current playhead position in beats",
         inputSchema: {
           type: "object",
           properties: {
@@ -467,126 +373,85 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "transport_playing_status",
-        description: "Check if transport is currently playing",
+        description: "Check if Bitwig is currently playing",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "transport_get_recording_status",
-        description: "Check if transport is currently recording",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "transport_get_time_signature",
-        description: "Get the transport time signature",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "transport_toggle_loop",
-        description: "Toggle loop on/off",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "transport_set_loop_start",
-        description: "Set loop start position in beats",
-        inputSchema: {
-          type: "object",
-          properties: {
-            beats: { type: "number", description: "Loop start position in beats" },
-          },
-          required: ["beats"],
-        },
-      },
-      {
-        name: "transport_set_loop_end",
-        description: "Set loop end position in beats",
-        inputSchema: {
-          type: "object",
-          properties: {
-            beats: { type: "number", description: "Loop end position in beats" },
-          },
-          required: ["beats"],
-        },
-      },
-      {
-        name: "transport_get_loop_status",
-        description: "Get current loop status (enabled, start, end)",
+        description: "Check if Bitwig is currently recording",
         inputSchema: { type: "object", properties: {} },
       },
       // --- Track Bank Tools ---
       {
         name: "track_bank_get_status",
-        description: "Get status (vol/pan/mute/solo) of all 8 tracks in the current bank window",
+        description: "Get status of the tracks in the current bank (0-7)",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "track_bank_set_volume",
-        description: "Set volume for a track in the bank 0-7",
+        description: "Set track volume in the bank",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Track index 0-7" },
-            value: { type: "number", description: "Volume value 0.0 to 1.0" },
+            index: { type: "number", description: "Track index (0-7)" },
+            value: { type: "number", description: "Normalized volume (0.0 - 1.0)" },
           },
           required: ["index", "value"],
         },
       },
       {
         name: "track_bank_set_pan",
-        description: "Set pan for a track in the bank 0-7",
+        description: "Set track panning in the bank",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Track index 0-7" },
-            value: { type: "number", description: "Pan value 0.0 to 1.0 (0.5 is center)" },
+            index: { type: "number" },
+            value: { type: "number", description: "Pan (-1.0 to 1.0)" },
           },
           required: ["index", "value"],
         },
       },
       {
         name: "track_bank_set_mute",
-        description: "Set mute for a track in the bank 0-7",
+        description: "Set track mute state in the bank",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Track index 0-7" },
-            state: { type: "boolean", description: "True to mute, False to unmute" },
+            index: { type: "number" },
+            state: { type: "boolean" },
           },
           required: ["index", "state"],
         },
       },
       {
         name: "track_bank_set_solo",
-        description: "Set solo for a track in the bank 0-7",
+        description: "Set track solo state in the bank",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Track index 0-7" },
-            state: { type: "boolean", description: "True to solo, False to unsolo" },
+            index: { type: "number" },
+            state: { type: "boolean" },
           },
           required: ["index", "state"],
         },
       },
       {
         name: "track_bank_select",
-        description: "Select a track in the bank 0-7",
+        description: "Select a track in the bank",
         inputSchema: {
           type: "object",
-          properties: {
-            index: { type: "number", description: "Track index 0-7" },
-          },
+          properties: { index: { type: "number" } },
           required: ["index"],
         },
       },
       {
         name: "track_delete",
-        description: "Delete a track from the bank (0-7) (REQUIRES_CONFIRMATION)",
+        description: "Delete a track by bank index",
         inputSchema: {
           type: "object",
-          properties: {
-            index: { type: "number", description: "Track index 0-7" },
-          },
-          required: ["index"],
-        },
+          properties: { index: { type: "number" } },
+          required: ["index"]
+        }
       },
       {
         name: "track_rename",
@@ -594,220 +459,182 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Track index 0-7" },
-            name: { type: "string", description: "New name" },
+            index: { type: "number" },
+            name: { type: "string" }
           },
-          required: ["index", "name"],
-        },
+          required: ["index", "name"]
+        }
       },
       {
         name: "track_duplicate",
         description: "Duplicate a track",
         inputSchema: {
           type: "object",
-          properties: {
-            index: { type: "number", description: "Track index 0-7" },
-          },
-          required: ["index"],
-        },
+          properties: { index: { type: "number" } },
+          required: ["index"]
+        }
       },
       {
         name: "track_set_color",
-        description: "Set track color",
+        description: "Set track color (0-1)",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Track index 0-7" },
-            red: { type: "number", description: "Red (0.0-1.0)" },
-            green: { type: "number", description: "Green (0.0-1.0)" },
-            blue: { type: "number", description: "Blue (0.0-1.0)" },
+            index: { type: "number" },
+            red: { type: "number" },
+            green: { type: "number" },
+            blue: { type: "number" }
           },
-          required: ["index", "red", "green", "blue"],
-        },
+          required: ["index", "red", "green", "blue"]
+        }
       },
       {
         name: "track_list",
-        description: "List all tracks in current bank with metadata",
+        description: "List all tracks in the current project (visible bank)",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "track_get_info",
-        description: "Get detailed information about a specific track",
+        description: "Get detailed information for a track by index",
         inputSchema: {
           type: "object",
-          properties: {
-            index: { type: "number", description: "Track index 0-7" },
-          },
-          required: ["index"],
-        },
+          properties: { index: { type: "number" } },
+          required: ["index"]
+        }
       },
       {
         name: "track_scroll_into_view",
-        description: "Scroll track into view in arranger and mixer",
+        description: "Scroll a track into view",
         inputSchema: {
           type: "object",
-          properties: {
-            index: { type: "number", description: "Track index 0-7" },
-          },
-          required: ["index"],
-        },
+          properties: { index: { type: "number" } },
+          required: ["index"]
+        }
       },
       {
         name: "track_bank_scroll_forward",
-        description: "Scroll track bank forward (show next 8 tracks)",
-        inputSchema: { type: "object", properties: {} },
+        description: "Scroll track bank forward",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "track_bank_scroll_backward",
-        description: "Scroll track bank backward (show previous 8 tracks)",
-        inputSchema: { type: "object", properties: {} },
+        description: "Scroll track bank backward",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "track_bank_scroll_to_position",
-        description: "Scroll track bank to specific position",
+        description: "Scroll track bank to a position",
         inputSchema: {
           type: "object",
-          properties: {
-            position: { type: "number", description: "Track position to scroll to" },
-          },
-          required: ["position"],
-        },
+          properties: { position: { type: "number" } },
+          required: ["position"]
+        }
       },
       // --- Clip & Scene Tools ---
       {
         name: "clip_launch",
-        description: "Launch a clip in a track's slot",
+        description: "Launch a clip slot",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" }
           },
-          required: ["trackIndex", "slotIndex"],
-        },
+          required: ["trackIndex", "slotIndex"]
+        }
       },
       {
         name: "clip_record",
-        description: "Trigger record on a clip slot",
+        description: "Record into a clip slot",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" }
           },
-          required: ["trackIndex", "slotIndex"],
-        },
+          required: ["trackIndex", "slotIndex"]
+        }
       },
       {
         name: "clip_stop",
-        description: "Stop clips playing on a track",
+        description: "Stop playing clips on a track",
         inputSchema: {
           type: "object",
-          properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-          },
-          required: ["trackIndex"],
-        },
+          properties: { trackIndex: { type: "number" } },
+          required: ["trackIndex"]
+        }
       },
       {
         name: "clip_get_status",
-        description: "Get the status of a specific clip slot",
+        description: "Get status of a clip slot",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
+            trackIndex: { type: "number" },
+            sceneIndex: { type: "number" }
           },
-          required: ["trackIndex", "sceneIndex"],
-        },
+          required: ["trackIndex", "sceneIndex"]
+        }
       },
       {
         name: "clip_get_grid",
-        description: "Get the entire 8x8 clip launcher grid state",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get the 8x8 clip launcher grid status",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "clip_set_color",
-        description: "Set the color of a clip",
+        description: "Set clip color",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
-            r: { type: "number", description: "Red 0.0-1.0" },
-            g: { type: "number", description: "Green 0.0-1.0" },
-            b: { type: "number", description: "Blue 0.0-1.0" },
+            trackIndex: { type: "number" },
+            sceneIndex: { type: "number" },
+            r: { type: "number" },
+            g: { type: "number" },
+            b: { type: "number" }
           },
-          required: ["trackIndex", "sceneIndex", "r", "g", "b"],
-        },
-      },
-      {
-        name: "clip_delete",
-        description: "Delete a clip from a slot (REQUIRES_CONFIRMATION)",
-        inputSchema: {
-          type: "object",
-          properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
-          },
-          required: ["trackIndex", "slotIndex"],
-        },
-      },
-      {
-        name: "clip_browse_insert",
-        description: "Open browser to insert a clip in a slot",
-        inputSchema: {
-          type: "object",
-          properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
-          },
-          required: ["trackIndex", "slotIndex"],
-        },
+          required: ["trackIndex", "sceneIndex", "r", "g", "b"]
+        }
       },
       {
         name: "clip_get_color",
-        description: "Get the color of a clip",
+        description: "Get clip color",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
+            trackIndex: { type: "number" },
+            sceneIndex: { type: "number" }
           },
-          required: ["trackIndex", "sceneIndex"],
-        },
+          required: ["trackIndex", "sceneIndex"]
+        }
       },
       {
         name: "scene_launch",
-        description: "Launch a scene (horizontal row of clips)",
+        description: "Launch a scene",
         inputSchema: {
           type: "object",
-          properties: {
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
-          },
-          required: ["sceneIndex"],
-        },
+          properties: { sceneIndex: { type: "number" } },
+          required: ["sceneIndex"]
+        }
       },
       {
         name: "scene_list",
-        description: "List available scenes in the current bank",
-        inputSchema: { type: "object", properties: {} },
+        description: "List all scenes",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "scene_create",
-        description: "Create a new empty scene",
-        inputSchema: { type: "object", properties: {} },
+        description: "Create a new scene",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "scene_delete",
-        description: "Delete a scene (REQUIRES_CONFIRMATION)",
+        description: "Delete a scene",
         inputSchema: {
           type: "object",
-          properties: {
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
-          },
-          required: ["sceneIndex"],
-        },
+          properties: { sceneIndex: { type: "number" } },
+          required: ["sceneIndex"]
+        }
       },
       {
         name: "scene_rename",
@@ -815,23 +642,37 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
-            name: { type: "string", description: "New name" },
+            sceneIndex: { type: "number" },
+            name: { type: "string" }
           },
-          required: ["sceneIndex", "name"],
-        },
+          required: ["sceneIndex", "name"]
+        }
+      },
+      {
+        name: "scene_select",
+        description: "Select a scene",
+        inputSchema: {
+          type: "object",
+          properties: { sceneIndex: { type: "number" } },
+          required: ["sceneIndex"]
+        }
+      },
+      {
+        name: "scene_create_from_playing",
+        description: "Create a scene from currently playing clips",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "clip_duplicate",
-        description: "Duplicate a clip in a slot",
+        description: "Duplicate a clip",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" }
           },
-          required: ["trackIndex", "slotIndex"],
-        },
+          required: ["trackIndex", "slotIndex"]
+        }
       },
       {
         name: "clip_slot_select",
@@ -839,40 +680,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" }
           },
-          required: ["trackIndex", "slotIndex"],
-        },
-      },
-      {
-        name: "scene_select",
-        description: "Select a scene",
-        inputSchema: {
-          type: "object",
-          properties: {
-            sceneIndex: { type: "number", description: "Scene index 0-7" },
-          },
-          required: ["sceneIndex"],
-        },
-      },
-      {
-        name: "scene_create_from_playing",
-        description: "Create a new scene from currently playing clips",
-        inputSchema: { type: "object", properties: {} },
+          required: ["trackIndex", "slotIndex"]
+        }
       },
       {
         name: "clip_create",
-        description: "Create an empty clip in a track slot",
+        description: "Create an empty clip",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            slotIndex: { type: "number", description: "Slot index 0-7" },
-            lengthBeats: { type: "number", description: "Length of clip in beats (e.g., 4, 8, 16)" },
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" },
+            lengthBeats: { type: "number" }
           },
-          required: ["trackIndex", "slotIndex", "lengthBeats"],
-        },
+          required: ["trackIndex", "slotIndex", "lengthBeats"]
+        }
+      },
+      {
+        name: "clip_delete",
+        description: "Delete a clip",
+        inputSchema: {
+          type: "object",
+          properties: {
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" }
+          },
+          required: ["trackIndex", "slotIndex"]
+        }
+      },
+      {
+        name: "clip_browse_insert",
+        description: "Open browser to insert clip at slot",
+        inputSchema: {
+          type: "object",
+          properties: {
+            trackIndex: { type: "number" },
+            slotIndex: { type: "number" }
+          },
+          required: ["trackIndex", "slotIndex"]
+        }
       },
       // --- Selected Track Tools ---
       {
@@ -882,228 +731,211 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "track_selected_set_volume",
-        description: "Set volume for the selected track",
+        description: "Set volume of selected track",
         inputSchema: {
           type: "object",
-          properties: {
-            value: { type: "number", description: "Volume value 0.0 to 1.0" },
-          },
-          required: ["value"],
+          properties: { value: { type: "number" } },
+          required: ["value"]
         },
       },
       {
         name: "track_selected_set_pan",
-        description: "Set pan for the selected track",
+        description: "Set pan of selected track",
         inputSchema: {
           type: "object",
-          properties: {
-            value: { type: "number", description: "Pan value 0.0 to 1.0" },
-          },
-          required: ["value"],
+          properties: { value: { type: "number" } },
+          required: ["value"]
         },
       },
       {
         name: "track_selected_set_mute",
-        description: "Set mute for the selected track",
+        description: "Set mute of selected track",
         inputSchema: {
           type: "object",
-          properties: {
-            state: { type: "boolean", description: "True to mute" },
-          },
-          required: ["state"],
+          properties: { state: { type: "boolean" } },
+          required: ["state"]
         },
       },
       {
         name: "track_selected_set_solo",
-        description: "Set solo for the selected track",
+        description: "Set solo of selected track",
         inputSchema: {
           type: "object",
-          properties: {
-            state: { type: "boolean", description: "True to solo" },
-          },
-          required: ["state"],
+          properties: { state: { type: "boolean" } },
+          required: ["state"]
         },
       },
       {
         name: "track_selected_set_arm",
-        description: "Set arm (record enable) for the selected track",
+        description: "Set arm of selected track",
         inputSchema: {
           type: "object",
-          properties: {
-            state: { type: "boolean", description: "True to arm" },
-          },
-          required: ["state"],
+          properties: { state: { type: "boolean" } },
+          required: ["state"]
         },
       },
       {
         name: "cursor_track_get_status",
-        description: "Get comprehensive status of the currently selected (cursor) track",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get detailed status of the cursor track",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "cursor_device_get_status",
-        description: "Get comprehensive status of the currently selected (cursor) device",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get detailed status of the cursor device",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "cursor_clip_get_status",
-        description: "Get comprehensive status of the currently selected (cursor) clip",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_select_next",
-        description: "Select next device in chain",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_select_previous",
-        description: "Select previous device in chain",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_select_first",
-        description: "Select first device in chain",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_select_last",
-        description: "Select last device in chain",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_browse_insert_before",
-        description: "Open browser to insert device before selected",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_browse_insert_after",
-        description: "Open browser to insert device after selected",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "device_browse_replace",
-        description: "Open browser to replace selected device",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "project_get_summary",
-        description: "Get a high-level summary of the project state (transport, tracks, scenes, selection)",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get detailed status of the cursor clip",
+        inputSchema: { type: "object", properties: {} }
       },
       // --- Application Tools ---
       {
         name: "application_create_instrument_track",
         description: "Create a new instrument track",
-        inputSchema: { type: "object", properties: {} },
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "application_create_audio_track",
         description: "Create a new audio track",
-        inputSchema: { type: "object", properties: {} },
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "application_create_effect_track",
-        description: "Create a new effect (return) track",
-        inputSchema: { type: "object", properties: {} },
+        description: "Create a new effect track",
+        inputSchema: { type: "object", properties: {} }
       },
       // --- Device Tools ---
       {
         name: "device_get_status",
-        description: "Get status of the currently selected device",
+        description: "Get status of the selected device",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "device_toggle_window",
-        description: "Toggle the device window",
+        description: "Toggle device window visibility",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "device_toggle_expanded",
-        description: "Toggle the device expanded view",
+        description: "Toggle device expanded state",
         inputSchema: { type: "object", properties: {} },
       },
       {
         name: "device_list",
-        description: "List devices on a specific track",
+        description: "List devices on a track",
         inputSchema: {
           type: "object",
-          properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-          },
-          required: ["trackIndex"],
-        },
+          properties: { trackIndex: { type: "number" } },
+          required: ["trackIndex"]
+        }
       },
       {
         name: "device_bypass",
-        description: "Toggle device bypass state",
+        description: "Bypass/Enable a device",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            deviceIndex: { type: "number", description: "Device index 0-7" },
-            bypass: { type: "boolean", description: "True to bypass (disable), False to enable" },
+            trackIndex: { type: "number" },
+            deviceIndex: { type: "number" },
+            bypass: { type: "boolean" }
           },
-          required: ["trackIndex", "deviceIndex", "bypass"],
-        },
+          required: ["trackIndex", "deviceIndex", "bypass"]
+        }
       },
       {
         name: "device_delete",
-        description: "Delete a device from a track (REQUIRES_CONFIRMATION)",
+        description: "Delete a device",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            deviceIndex: { type: "number", description: "Device index 0-7" },
+            trackIndex: { type: "number" },
+            deviceIndex: { type: "number" }
           },
-          required: ["trackIndex", "deviceIndex"],
-        },
+          required: ["trackIndex", "deviceIndex"]
+        }
       },
       {
         name: "device_get_remote_controls",
-        description: "Get the 8 remote control parameters for the current page",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get current remote control page parameters",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "device_set_remote_control",
-        description: "Set value for a remote control parameter",
+        description: "Set a remote control parameter value",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Parameter index 0-7" },
-            value: { type: "number", description: "Value 0.0 to 1.0" },
+            index: { type: "number" },
+            value: { type: "number" }
           },
-          required: ["index", "value"],
-        },
+          required: ["index", "value"]
+        }
       },
       {
         name: "device_page_next",
-        description: "Select next remote controls page",
-        inputSchema: { type: "object", properties: {} },
+        description: "Go to next remote control page",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "device_page_previous",
-        description: "Select previous remote controls page",
-        inputSchema: { type: "object", properties: {} },
+        description: "Go to previous remote control page",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_select_next",
+        description: "Select next device in chain",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_select_previous",
+        description: "Select previous device in chain",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_select_first",
+        description: "Select first device in chain",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_select_last",
+        description: "Select last device in chain",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_browse_insert_before",
+        description: "Open browser to insert device before selected",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_browse_insert_after",
+        description: "Open browser to insert device after selected",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "device_browse_replace",
+        description: "Open browser to replace selected device",
+        inputSchema: { type: "object", properties: {} }
       },
       // --- Clip Tools ---
       {
         name: "clip_get_info",
-        description: "Get information about the currently selected clip",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get information about the cursor clip",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "clip_set_note",
-        description: "Set a note at a specific step in the clip",
+        description: "Set a note in the cursor clip",
         inputSchema: {
           type: "object",
           properties: {
-            step: { type: "number", description: "Step position (0-based)" },
-            pitch: { type: "number", description: "MIDI pitch (0-127)" },
-            velocity: { type: "number", description: "Velocity (0.0-1.0)" },
-            duration: { type: "number", description: "Duration in steps" },
+            step: { type: "number" },
+            pitch: { type: "number" },
+            velocity: { type: "number" },
+            duration: { type: "number" }
           },
-          required: ["step", "pitch", "velocity", "duration"],
-        },
+          required: ["step", "pitch", "velocity", "duration"]
+        }
       },
       {
         name: "clip_clear_note",
@@ -1111,113 +943,371 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            step: { type: "number", description: "Step position (0-based)" },
-            pitch: { type: "number", description: "MIDI pitch (0-127)" },
+            step: { type: "number" },
+            pitch: { type: "number" }
           },
-          required: ["step", "pitch"],
-        },
+          required: ["step", "pitch"]
+        }
       },
       {
         name: "clip_toggle_note",
-        description: "Toggle a note on/off at a specific step",
+        description: "Toggle a note in the cursor clip",
         inputSchema: {
           type: "object",
           properties: {
-            step: { type: "number", description: "Step position (0-based)" },
-            pitch: { type: "number", description: "MIDI pitch (0-127)" },
-            velocity: { type: "number", description: "Velocity if creating (0.0-1.0), default 1.0" },
+            step: { type: "number" },
+            pitch: { type: "number" },
+            velocity: { type: "number" }
           },
-          required: ["step", "pitch"],
-        },
+          required: ["step", "pitch", "velocity"]
+        }
       },
       {
         name: "clip_get_notes",
-        description: "Get notes in a step range (placeholder - requires observer pattern)",
+        description: "List notes in a range",
         inputSchema: {
           type: "object",
           properties: {
-            startStep: { type: "number", description: "Starting step (0-based)" },
-            stepCount: { type: "number", description: "Number of steps to read" },
-            pitch: { type: "number", description: "MIDI pitch (0-127)" },
+            startStep: { type: "number" },
+            stepCount: { type: "number" },
+            pitch: { type: "number" }
           },
-          required: ["startStep", "stepCount", "pitch"],
-        },
+          required: ["startStep", "stepCount", "pitch"]
+        }
       },
       // --- Mixer Tools ---
       {
         name: "mixer_get_master_volume",
-        description: "Get the current master volume (0.0 to 1.0)",
-        inputSchema: { type: "object", properties: {} },
+        description: "Get the master track volume",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "mixer_set_master_volume",
-        description: "Set the master volume",
+        description: "Set the master track volume",
         inputSchema: {
           type: "object",
-          properties: {
-            value: { type: "number", description: "Volume value 0.0 to 1.0" },
-          },
-          required: ["value"],
-        },
+          properties: { value: { type: "number" } },
+          required: ["value"]
+        }
       },
       {
         name: "mixer_get_send_level",
-        description: "Get send level for a track",
+        description: "Get track send level",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            sendIndex: { type: "number", description: "Send index 0-1" },
+            trackIndex: { type: "number" },
+            sendIndex: { type: "number" }
           },
-          required: ["trackIndex", "sendIndex"],
-        },
+          required: ["trackIndex", "sendIndex"]
+        }
       },
       {
         name: "mixer_set_send_level",
-        description: "Set send level for a track",
+        description: "Set track send level",
         inputSchema: {
           type: "object",
           properties: {
-            trackIndex: { type: "number", description: "Track index 0-7" },
-            sendIndex: { type: "number", description: "Send index 0-1" },
-            value: { type: "number", description: "Send level 0.0 to 1.0" },
+            trackIndex: { type: "number" },
+            sendIndex: { type: "number" },
+            value: { type: "number" }
           },
-          required: ["trackIndex", "sendIndex", "value"],
-        },
+          required: ["trackIndex", "sendIndex", "value"]
+        }
       },
       {
         name: "mixer_return_list",
-        description: "List all return (effect) tracks",
-        inputSchema: { type: "object", properties: {} },
+        description: "List return tracks",
+        inputSchema: { type: "object", properties: {} }
       },
       {
         name: "mixer_return_set_volume",
-        description: "Set volume for a return track",
+        description: "Set return track volume",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Return track index 0-7" },
-            value: { type: "number", description: "Volume value 0.0 to 1.0" },
+            index: { type: "number" },
+            value: { type: "number" }
           },
-          required: ["index", "value"],
-        },
+          required: ["index", "value"]
+        }
       },
       {
         name: "mixer_return_set_pan",
-        description: "Set pan for a return track",
+        description: "Set return track pan",
         inputSchema: {
           type: "object",
           properties: {
-            index: { type: "number", description: "Return track index 0-7" },
-            value: { type: "number", description: "Pan value 0.0 to 1.0" },
+            index: { type: "number" },
+            value: { type: "number" }
           },
-          required: ["index", "value"],
+          required: ["index", "value"]
+        }
+      },
+      {
+        name: "project_get_summary",
+        description: "Get project summary",
+        inputSchema: { type: "object", properties: {} }
+      },
+      // --- Arranger Tools ---
+      {
+        name: "arranger_get_status",
+        description: "Get status of the Arranger (visibility, zoom, panels)",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "arranger_set_panel_visibility",
+        description: "Set visibility of Arranger panels",
+        inputSchema: {
+          type: "object",
+          properties: {
+            panel: { type: "string", description: "Panel name: timeline, io, clip_launcher, effect_tracks, double_row_height, cue_markers, playback_follow" },
+            state: { type: "boolean", description: "True to show, False to hide" },
+          },
+          required: ["panel", "state"],
         },
+      },
+      {
+        name: "arranger_zoom",
+        description: "Zoom arranger lanes",
+        inputSchema: {
+          type: "object",
+          properties: {
+            action: { type: "string", description: "Action: in_all, out_all, in_selected, out_selected" },
+          },
+          required: ["action"],
+        },
+      },
+      {
+        name: "arranger_get_cue_markers",
+        description: "List all cue markers",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "arranger_jump_to_cue_marker",
+        description: "Jump to a cue marker by index",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number", description: "Marker index (0-31)" },
+          },
+          required: ["index"],
+        },
+      },
+      // --- Note Input Tools ---
+      {
+        name: "midi_send_raw",
+        description: "Send raw MIDI bytes",
+        inputSchema: {
+          type: "object",
+          properties: {
+            status: { type: "number", description: "Status byte (e.g., 144 for Note On Ch1)" },
+            data1: { type: "number", description: "Data byte 1" },
+            data2: { type: "number", description: "Data byte 2" },
+          },
+          required: ["status", "data1", "data2"],
+        },
+      },
+      {
+        name: "note_on",
+        description: "Send Note On message",
+        inputSchema: {
+          type: "object",
+          properties: {
+            channel: { type: "number", description: "MIDI Channel (0-15)" },
+            pitch: { type: "number", description: "MIDI Pitch (0-127)" },
+            velocity: { type: "number", description: "Velocity (0-127)" },
+          },
+          required: ["channel", "pitch", "velocity"],
+        },
+      },
+      {
+        name: "note_off",
+        description: "Send Note Off message",
+        inputSchema: {
+          type: "object",
+          properties: {
+            channel: { type: "number", description: "MIDI Channel (0-15)" },
+            pitch: { type: "number", description: "MIDI Pitch (0-127)" },
+            velocity: { type: "number", description: "Velocity (0-127)" },
+          },
+          required: ["channel", "pitch", "velocity"],
+        },
+      },
+      {
+        name: "note_play",
+        description: "Play a note for a duration (helper method)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            channel: { type: "number", description: "MIDI Channel (0-15)" },
+            pitch: { type: "number", description: "MIDI Pitch (0-127)" },
+            velocity: { type: "number", description: "Velocity (0-127)" },
+            duration: { type: "number", description: "Duration in ms" },
+          },
+          required: ["channel", "pitch", "velocity", "duration"],
+        },
+      },
+      // --- Note Input Advanced ---
+      {
+        name: "note_input_assign_expression",
+        description: "Assign polyphonic aftertouch to a note expression (MPE)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            channel: { type: "number", description: "MIDI channel (0-15)" },
+            expression: { type: "string", enum: ["NONE", "PITCH", "TIMBRE", "PRESSURE"] },
+            pitchRange: { type: "number", description: "Pitch range in semitones" }
+          },
+          required: ["channel", "expression", "pitchRange"]
+        }
+      },
+      {
+        name: "note_input_set_mpe",
+        description: "Enable or disable MPE (Multidimensional Polyphonic Expression)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            enabled: { type: "boolean" },
+            baseChannel: { type: "number", description: "Base channel (0-15)" },
+            pitchBendRange: { type: "number", description: "Pitch bend range in semitones" }
+          },
+          required: ["enabled", "baseChannel", "pitchBendRange"]
+        }
+      },
+      {
+        name: "note_input_set_key_translation",
+        description: "Set the key translation table (128 entries)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            table: { type: "array", items: { type: "number" } }
+          },
+          required: ["table"]
+        }
+      },
+      {
+        name: "note_input_set_velocity_translation",
+        description: "Set the velocity translation table (128 entries)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            table: { type: "array", items: { type: "number" } }
+          },
+          required: ["table"]
+        }
+      },
+      // --- Drum Pad Tools ---
+      {
+        name: "drumpad_get_status",
+        description: "Get status of the drum pads for the selected device",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "drumpad_select",
+        description: "Select a drum pad by index",
+        inputSchema: {
+          type: "object",
+          properties: { index: { type: "number" } },
+          required: ["index"]
+        }
+      },
+      {
+        name: "drumpad_scroll_forward",
+        description: "Scroll drum pad bank forward",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "drumpad_scroll_backward",
+        description: "Scroll drum pad bank backward",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "drumpad_set_volume",
+        description: "Set drum pad volume",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number" },
+            value: { type: "number", description: "0.0 to 1.0" }
+          },
+          required: ["index", "value"]
+        }
+      },
+      {
+        name: "drumpad_set_mute",
+        description: "Set drum pad mute state",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number" },
+            state: { type: "boolean" }
+          },
+          required: ["index", "state"]
+        }
+      },
+      {
+        name: "drumpad_set_solo",
+        description: "Set drum pad solo state",
+        inputSchema: {
+          type: "object",
+          properties: {
+            index: { type: "number" },
+            state: { type: "boolean" }
+          },
+          required: ["index", "state"]
+        }
+      },
+      // --- Groove Tools ---
+      {
+        name: "groove_get_status",
+        description: "Get global project groove settings",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "groove_set_enabled",
+        description: "Enable or disable global groove",
+        inputSchema: {
+          type: "object",
+          properties: { state: { type: "boolean" } },
+          required: ["state"]
+        }
+      },
+      {
+        name: "groove_set_shuffle_amount",
+        description: "Set groove shuffle amount",
+        inputSchema: {
+          type: "object",
+          properties: { value: { type: "number", description: "0.0 to 1.0" } },
+          required: ["value"]
+        }
+      },
+      // --- Project Mixer Tools ---
+      {
+        name: "project_unsolo_all",
+        description: "Unsolo all tracks in the project",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "project_unmute_all",
+        description: "Unmute all tracks in the project",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "project_unarm_all",
+        description: "Unarm all tracks in the project",
+        inputSchema: { type: "object", properties: {} }
+      },
+      // --- Arranger Advanced ---
+      {
+        name: "arranger_cues_create",
+        description: "Create a cue marker at the current playback position",
+        inputSchema: { type: "object", properties: {} }
       },
       // --- Browser Tools ---
       {
         name: "browser_get_status",
-        description: "Check if the browser is currently open and get filter text",
+        description: "Get the status of the popup browser",
         inputSchema: { type: "object", properties: {} },
       },
       {
@@ -1359,105 +1449,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "transport_nudge_backward",
         description: "Nudge playhead backward by 1 beat",
         inputSchema: { type: "object", properties: {} },
-      },
-      // --- Arranger Tools ---
-      {
-        name: "arranger_get_status",
-        description: "Get status of the Arranger (visibility, zoom, panels)",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "arranger_set_panel_visibility",
-        description: "Set visibility of Arranger panels",
-        inputSchema: {
-          type: "object",
-          properties: {
-            panel: { type: "string", description: "Panel name: timeline, io, clip_launcher, effect_tracks, double_row_height, cue_markers, playback_follow" },
-            state: { type: "boolean", description: "True to show, False to hide" },
-          },
-          required: ["panel", "state"],
-        },
-      },
-      {
-        name: "arranger_zoom",
-        description: "Zoom arranger lanes",
-        inputSchema: {
-          type: "object",
-          properties: {
-            action: { type: "string", description: "Action: in_all, out_all, in_selected, out_selected" },
-          },
-          required: ["action"],
-        },
-      },
-      {
-        name: "arranger_get_cue_markers",
-        description: "List all cue markers",
-        inputSchema: { type: "object", properties: {} },
-      },
-      {
-        name: "arranger_jump_to_cue_marker",
-        description: "Jump to a cue marker by index",
-        inputSchema: {
-          type: "object",
-          properties: {
-            index: { type: "number", description: "Marker index (0-31)" },
-          },
-          required: ["index"],
-        },
-      },
-      // --- Note Input Tools ---
-      {
-        name: "midi_send_raw",
-        description: "Send raw MIDI bytes",
-        inputSchema: {
-          type: "object",
-          properties: {
-            status: { type: "number", description: "Status byte (e.g., 144 for Note On Ch1)" },
-            data1: { type: "number", description: "Data byte 1" },
-            data2: { type: "number", description: "Data byte 2" },
-          },
-          required: ["status", "data1", "data2"],
-        },
-      },
-      {
-        name: "note_on",
-        description: "Send Note On message",
-        inputSchema: {
-          type: "object",
-          properties: {
-            channel: { type: "number", description: "MIDI Channel (0-15)" },
-            pitch: { type: "number", description: "MIDI Pitch (0-127)" },
-            velocity: { type: "number", description: "Velocity (0-127)" },
-          },
-          required: ["channel", "pitch", "velocity"],
-        },
-      },
-      {
-        name: "note_off",
-        description: "Send Note Off message",
-        inputSchema: {
-          type: "object",
-          properties: {
-            channel: { type: "number", description: "MIDI Channel (0-15)" },
-            pitch: { type: "number", description: "MIDI Pitch (0-127)" },
-            velocity: { type: "number", description: "Velocity (0-127)" },
-          },
-          required: ["channel", "pitch", "velocity"],
-        },
-      },
-      {
-        name: "note_play",
-        description: "Play a note for a duration (helper method)",
-        inputSchema: {
-          type: "object",
-          properties: {
-            channel: { type: "number", description: "MIDI Channel (0-15)" },
-            pitch: { type: "number", description: "MIDI Pitch (0-127)" },
-            velocity: { type: "number", description: "Velocity (0-127)" },
-            duration: { type: "number", description: "Duration in ms" },
-          },
-          required: ["channel", "pitch", "velocity", "duration"],
-        },
       },
       // --- Arranger Tools ---
       {
@@ -1707,6 +1698,9 @@ async function executeTool(name: string, args: ToolArgs) {
       break;
     case "transport_add_cue_marker":
       result = await callBitwig("transport.add_cue_marker");
+      break;
+    case "arranger_cues_create":
+      result = await callBitwig("arranger.cues.create");
       break;
 
     // --- Application Tools ---
@@ -1989,23 +1983,6 @@ async function executeTool(name: string, args: ToolArgs) {
       result = await callBitwig("project.get_summary");
       break;
 
-    // --- Arranger Tools ---
-    case "arranger_get_status":
-      result = await callBitwig("arranger.get_status");
-      break;
-    case "arranger_set_panel_visibility":
-      result = await callBitwig("arranger.set_panel_visibility", [args.panel, args.state]);
-      break;
-    case "arranger_zoom":
-      result = await callBitwig("arranger.zoom", [args.action]);
-      break;
-    case "arranger_get_cue_markers":
-      result = await callBitwig("arranger.cues.list");
-      break;
-    case "arranger_jump_to_cue_marker":
-      result = await callBitwig("arranger.cues.jump", [args.index]);
-      break;
-
     // --- Note Input Tools ---
     case "midi_send_raw":
       result = await callBitwig("note_input.send_raw_midi", [args.status, args.data1, args.data2]);
@@ -2017,10 +1994,68 @@ async function executeTool(name: string, args: ToolArgs) {
       result = await callBitwig("note_input.send_note_off", [args.channel, args.pitch, args.velocity]);
       break;
     case "note_play":
-      // Helper: Send Note On, wait, send Note Off
       await callBitwig("note_input.send_note_on", [args.channel, args.pitch, args.velocity]);
       await new Promise(resolve => setTimeout(resolve, args.duration as number));
       result = await callBitwig("note_input.send_note_off", [args.channel, args.pitch, 0]);
+      break;
+
+    // --- Note Input Advanced ---
+    case "note_input_assign_expression":
+      result = await callBitwig("note_input.assign_poly_aftertouch_to_expression", [args.channel, args.expression, args.pitchRange]);
+      break;
+    case "note_input_set_mpe":
+      result = await callBitwig("note_input.set_use_expressive_midi", [args.enabled, args.baseChannel, args.pitchBendRange]);
+      break;
+    case "note_input_set_key_translation":
+      result = await callBitwig("note_input.set_key_translation_table", [args.table]);
+      break;
+    case "note_input_set_velocity_translation":
+      result = await callBitwig("note_input.set_velocity_translation_table", [args.table]);
+      break;
+
+    // --- Drum Pad Tools ---
+    case "drumpad_get_status":
+      result = await callBitwig("drumpad.get_status");
+      break;
+    case "drumpad_select":
+      result = await callBitwig("drumpad.select", [args.index]);
+      break;
+    case "drumpad_scroll_forward":
+      result = await callBitwig("drumpad.scroll_forward");
+      break;
+    case "drumpad_scroll_backward":
+      result = await callBitwig("drumpad.scroll_backward");
+      break;
+    case "drumpad_set_volume":
+      result = await callBitwig("drumpad.set_volume", [args.index, args.value]);
+      break;
+    case "drumpad_set_mute":
+      result = await callBitwig("drumpad.set_mute", [args.index, args.state]);
+      break;
+    case "drumpad_set_solo":
+      result = await callBitwig("drumpad.set_solo", [args.index, args.state]);
+      break;
+
+    // --- Groove Tools ---
+    case "groove_get_status":
+      result = await callBitwig("groove.get_status");
+      break;
+    case "groove_set_enabled":
+      result = await callBitwig("groove.set_enabled", [args.state]);
+      break;
+    case "groove_set_shuffle_amount":
+      result = await callBitwig("groove.set_shuffle_amount", [args.value]);
+      break;
+
+    // --- Project Mixer Tools ---
+    case "project_unsolo_all":
+      result = await callBitwig("project.unsolo_all");
+      break;
+    case "project_unmute_all":
+      result = await callBitwig("project.unmute_all");
+      break;
+    case "project_unarm_all":
+      result = await callBitwig("project.unarm_all");
       break;
 
     // --- Browser Tools ---

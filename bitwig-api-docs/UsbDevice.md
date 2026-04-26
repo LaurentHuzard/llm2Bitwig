@@ -12,7 +12,6 @@ UsbDeviceMatcher deviceMatcher()
 
 The UsbDeviceMatcher that was provided by the controller for identifying this device.
 
-
 ---
 
 ### `ifaces`
@@ -34,4 +33,3 @@ UsbInterface iface(int index)
 The UsbInterface that was claimed using the UsbInterfaceMatcher defined at the corresponding index in the UsbDeviceMatcher.
 
 ---
-

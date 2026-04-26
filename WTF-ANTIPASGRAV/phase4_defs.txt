@@ -1,0 +1,46 @@
+      // --- Groove Tools ---
+      {
+        name: "groove_get_status",
+        description: "Get global project groove settings",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "groove_set_enabled",
+        description: "Enable or disable global groove",
+        inputSchema: {
+          type: "object",
+          properties: { state: { type: "boolean" } },
+          required: ["state"]
+        }
+      },
+      {
+        name: "groove_set_shuffle_amount",
+        description: "Set groove shuffle amount",
+        inputSchema: {
+          type: "object",
+          properties: { value: { type: "number", description: "0.0 to 1.0" } },
+          required: ["value"]
+        }
+      },
+      // --- Project Mixer Tools ---
+      {
+        name: "project_unsolo_all",
+        description: "Unsolo all tracks in the project",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "project_unmute_all",
+        description: "Unmute all tracks in the project",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "project_unarm_all",
+        description: "Unarm all tracks in the project",
+        inputSchema: { type: "object", properties: {} }
+      },
+      // --- Arranger Advanced ---
+      {
+        name: "arranger_cues_create",
+        description: "Create a cue marker at the current playback position",
+        inputSchema: { type: "object", properties: {} }
+      },

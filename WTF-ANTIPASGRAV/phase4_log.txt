@@ -1,0 +1,26 @@
+    // --- Groove Tools ---
+    case "groove_get_status":
+      result = await callBitwig("groove.get_status");
+      break;
+    case "groove_set_enabled":
+      result = await callBitwig("groove.set_enabled", [args.state]);
+      break;
+    case "groove_set_shuffle_amount":
+      result = await callBitwig("groove.set_shuffle_amount", [args.value]);
+      break;
+
+    // --- Project Mixer Tools ---
+    case "project_unsolo_all":
+      result = await callBitwig("project.unsolo_all");
+      break;
+    case "project_unmute_all":
+      result = await callBitwig("project.unmute_all");
+      break;
+    case "project_unarm_all":
+      result = await callBitwig("project.unarm_all");
+      break;
+
+    // --- Arranger Advanced ---
+    case "arranger_cues_create":
+      result = await callBitwig("arranger.cues.create");
+      break;

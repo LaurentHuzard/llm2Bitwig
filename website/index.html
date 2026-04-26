@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#360021",
+                        "on-secondary-fixed": "#003a43",
+                        "surface-tint": "#cc97ff",
+                        "secondary-dim": "#1ad0eb",
+                        "error-dim": "#d73357",
+                        "background": "#0e0e0e",
+                        "secondary": "#3adffa",
+                        "error-container": "#a70138",
+                        "inverse-primary": "#842cd3",
+                        "tertiary-fixed-dim": "#f976ba",
+                        "outline-variant": "#494847",
+                        "tertiary-container": "#f673b7",
+                        "on-tertiary-fixed-variant": "#73004b",
+                        "secondary-fixed-dim": "#29d6f1",
+                        "on-surface-variant": "#adaaaa",
+                        "on-primary-container": "#360061",
+                        "on-primary-fixed": "#000000",
+                        "surface-container-highest": "#262626",
+                        "surface-container-high": "#201f1f",
+                        "primary-dim": "#9c48ea",
+                        "on-error-container": "#ffb2b9",
+                        "surface-container-low": "#131313",
+                        "error": "#ff6e84",
+                        "tertiary": "#ff86c3",
+                        "on-tertiary-container": "#4a002f",
+                        "primary-fixed-dim": "#b971ff",
+                        "surface-variant": "#262626",
+                        "on-primary-fixed-variant": "#430076",
+                        "secondary-fixed": "#48e4ff",
+                        "on-background": "#ffffff",
+                        "secondary-container": "#006877",
+                        "surface": "#0e0e0e",
+                        "inverse-on-surface": "#565554",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-container-lowest": "#000000",
+                        "primary-container": "#c284ff",
+                        "primary-fixed": "#c284ff",
+                        "on-tertiary": "#5f003e",
+                        "on-primary": "#47007c",
+                        "surface-dim": "#0e0e0e",
+                        "surface-container": "#1a1919",
+                        "outline": "#777575",
+                        "primary": "#cc97ff",
+                        "on-surface": "#ffffff",
+                        "tertiary-fixed": "#ff8bc5",
+                        "on-secondary": "#004b56",
+                        "surface-bright": "#2c2c2c",
+                        "on-error": "#490013",
+                        "on-secondary-fixed-variant": "#005966",
+                        "tertiary-dim": "#f271b5",
+                        "on-secondary-container": "#eafbff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "display": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .nav-text { font-family: 'Space Grotesk', sans-serif; }
+        .glitch-effect {
+            position: relative;
+            text-shadow: 2px 0 #ff86c3, -2px 0 #3adffa;
+        }
+        .glass-panel {
+            background: rgba(38, 38, 38, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .neon-glow-primary {
+            box-shadow: 0 0 12px rgba(204, 151, 255, 0.3);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-neutral-950/60 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(168,85,247,0.1)]">
+<div class="flex justify-between items-center w-full px-6 py-4 mx-auto max-w-7xl">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-purple-500 text-2xl">graphic_eq</span>
+<span class="text-xl font-bold tracking-tighter text-white italic">BEATMAKER TWIN</span>
+</div>
+<nav class="hidden md:flex items-center gap-8 font-['Space_Grotesk'] uppercase tracking-widest text-sm">
+<a class="text-purple-400 border-b-2 border-purple-500 pb-1" href="#">STUDIO</a>
+<a class="text-neutral-400 hover:text-white transition-all duration-300" href="#">PROTOCOL</a>
+<a class="text-neutral-400 hover:text-white transition-all duration-300" href="#">OSCILLATORS</a>
+</nav>
+<button class="bg-primary/10 hover:bg-purple-500/20 text-purple-500 px-4 py-2 rounded-xl text-xs font-bold tracking-widest active:scale-95 transition-all duration-300 border border-purple-500/20">
+                INITIALIZE
+            </button>
+</div>
+</header>
+<main class="relative pt-24 overflow-hidden">
+<!-- Ambient Background Light Leaks -->
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-dim/20 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[20%] right-[-5%] w-[30%] h-[50%] bg-secondary-dim/10 blur-[100px] rounded-full"></div>
+<!-- Hero Section -->
+<section class="relative px-6 py-20 md:py-32 max-w-7xl mx-auto flex flex-col items-center text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/20 mb-8">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant font-bold">System Status: Operational</span>
+</div>
+<h1 class="text-5xl md:text-8xl font-black mb-8 leading-tight tracking-tighter max-w-4xl">
+                Your AI Music <span class="glitch-effect text-primary italic">Co-Pilot</span>
+</h1>
+<p class="text-on-surface-variant text-lg md:text-xl max-w-2xl mb-12 font-light leading-relaxed">
+                Bridge Bitwig Studio with MCP using intelligent AI agents. Synthesize ideas faster than ever through a direct neural link to your DAW.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 items-center">
+<button class="bg-primary text-on-primary px-8 py-4 rounded-xl font-bold tracking-wide neon-glow-primary hover:brightness-110 active:scale-95 transition-all">
+                    Explore the Magic
+                </button>
+<button class="bg-transparent text-secondary border border-secondary/20 hover:border-secondary/60 px-8 py-4 rounded-xl font-bold tracking-wide active:scale-95 transition-all">
+                    View Demo
+                </button>
+</div>
+</section>
+<!-- Core Capabilities Section -->
+<section class="relative px-6 py-20 max-w-7xl mx-auto">
+<div class="mb-16">
+<h2 class="text-3xl font-bold tracking-widest uppercase text-white">Core Capabilities</h2>
+<div class="h-1 w-20 bg-primary mt-4"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Card 1 -->
+<div class="group relative p-8 rounded-xl bg-surface-container-low border border-outline-variant/10 hover:border-primary/40 transition-all duration-500 overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+<span class="material-symbols-outlined text-6xl">speed</span>
+</div>
+<div class="relative z-10">
+<span class="material-symbols-outlined text-primary text-4xl mb-6">play_circle</span>
+<h3 class="text-xl font-bold mb-4 text-white uppercase tracking-tight">Transport Control</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                            Real-time playback and sync via AI prompts. Orchestrate your entire session timeline through natural language commands.
+                        </p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group relative p-8 rounded-xl bg-surface-container-low border border-outline-variant/10 hover:border-secondary/40 transition-all duration-500 overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+<span class="material-symbols-outlined text-6xl">equalizer</span>
+</div>
+<div class="relative z-10">
+<span class="material-symbols-outlined text-secondary text-4xl mb-6">tune</span>
+<h3 class="text-xl font-bold mb-4 text-white uppercase tracking-tight">Track &amp; Mixer</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                            Modulate parameters with LLM logic. Dynamically adjust gains, EQ curves, and effects chains based on spectral analysis.
+                        </p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group relative p-8 rounded-xl bg-surface-container-low border border-outline-variant/10 hover:border-tertiary/40 transition-all duration-500 overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+<span class="material-symbols-outlined text-6xl">visibility</span>
+</div>
+<div class="relative z-10">
+<span class="material-symbols-outlined text-tertiary text-4xl mb-6">layers</span>
+<h3 class="text-xl font-bold mb-4 text-white uppercase tracking-tight">Project Context</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                            Full visibility into your musical environment. The AI understands your project structure, sample choices, and arrangement.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<!-- See it in Action Section -->
+<section class="relative px-6 py-20 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+<div class="space-y-6">
+<h2 class="text-4xl font-bold text-white tracking-tight uppercase">See it in Action</h2>
+<p class="text-on-surface-variant text-lg">
+                        The bridge between your creativity and the machine. Witness the seamless protocol handshake between your DAW and the intelligence layer.
+                    </p>
+<div class="flex items-center gap-4 py-4">
+<div class="flex -space-x-3">
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-xs text-primary">token</span>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-xs text-secondary">memory</span>
+</div>
+<div class="w-10 h-10 rounded-full border-2 border-background bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-xs text-tertiary">data_object</span>
+</div>
+</div>
+<span class="text-xs font-bold tracking-widest text-on-surface-variant uppercase">32ms Latency / Optimized</span>
+</div>
+</div>
+<!-- Interactive Representation -->
+<div class="relative rounded-xl overflow-hidden glass-panel border border-outline-variant/20 shadow-2xl">
+<div class="bg-surface-container-lowest p-4 flex items-center gap-2 border-b border-outline-variant/20">
+<div class="flex gap-1.5">
+<div class="w-3 h-3 rounded-full bg-error-dim/40"></div>
+<div class="w-3 h-3 rounded-full bg-secondary-dim/40"></div>
+<div class="w-3 h-3 rounded-full bg-primary-dim/40"></div>
+</div>
+<div class="mx-auto text-[10px] tracking-widest text-on-surface-variant uppercase font-bold">MCP_TERMINAL_V.2.0</div>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-container-lowest/80">
+<!-- Terminal Side -->
+<div class="font-mono text-[11px] space-y-2 text-secondary-dim/80">
+<p><span class="text-primary-dim">[SYSTEM]</span> Initializing core...</p>
+<p><span class="text-secondary-dim">[DAW]</span> Bitwig Link established.</p>
+<p><span class="text-on-surface-variant">[AGENT]</span> Listening for prompts...</p>
+<p><span class="text-tertiary-dim">&gt;</span> "Apply dark reverb to track 4"</p>
+<p><span class="text-secondary-dim">[LINK]</span> Injecting VST parameters...</p>
+<p><span class="text-primary-dim">[SUCCESS]</span> Modulation active.</p>
+</div>
+<!-- Mixer Visualization -->
+<div class="flex justify-around items-end h-32 py-2 px-4 bg-surface-container-high/50 rounded-lg border border-outline-variant/10">
+<div class="w-2 bg-primary/20 rounded-full relative h-full">
+<div class="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full shadow-[0_0_8px_rgba(204,151,255,1)]"></div>
+</div>
+<div class="w-2 bg-secondary/20 rounded-full relative h-full">
+<div class="absolute bottom-2/3 left-1/2 -translate-x-1/2 w-4 h-4 bg-secondary rounded-full shadow-[0_0_8px_rgba(58,223,250,1)]"></div>
+</div>
+<div class="w-2 bg-tertiary/20 rounded-full relative h-full">
+<div class="absolute bottom-1/3 left-1/2 -translate-x-1/2 w-4 h-4 bg-tertiary rounded-full shadow-[0_0_8px_rgba(255,134,195,1)]"></div>
+</div>
+<div class="w-2 bg-primary/20 rounded-full relative h-full">
+<div class="absolute bottom-1/2 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full shadow-[0_0_8px_rgba(204,151,255,1)]"></div>
+</div>
+</div>
+</div>
+<img class="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-20 pointer-events-none" data-alt="Modern high-tech music studio with glowing purple and blue neon lights on mixing equipment and computer screens in a dark cinematic environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxoeiXHmht7PAkx0LB1mCn_7dM5huiztyWycZEnidfLEa-5dnKHpat12TNIkTl_mVDFhD02ZZ1FfktZTR9prqTbuok2epy9I2YqKftYq0NbUpzfZcBn-dLzll7-TxUfJLG3Nw7e9c7Ei0nCud28vXeXF0yfPhwCT5CVp3X6jxTrh_0SWiMAOASZsJf4yHdTLshcHIcnzeD9pCH_9pl22o3B_xyJVAPReux9XbvJ3bynbpzu3dUCg1-miZkHYyxzQN53wN7f7lFAXtW"/>
+</div>
+</div>
+</section>
+<!-- Final CTA Section -->
+<section class="relative px-6 py-28 max-w-4xl mx-auto text-center">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-primary/5 blur-[120px] rounded-full"></div>
+<h2 class="text-4xl md:text-6xl font-black mb-10 tracking-tighter uppercase text-white">Ready to sync?</h2>
+<div class="flex flex-col sm:flex-row gap-6 justify-center relative z-10">
+<button class="bg-primary text-on-primary px-10 py-5 rounded-xl font-bold tracking-widest text-sm neon-glow-primary active:scale-95 transition-all">
+                    GET STARTED FOR FREE
+                </button>
+<button class="bg-surface-container-high text-white px-10 py-5 rounded-xl font-bold tracking-widest text-sm border border-outline-variant/30 hover:bg-surface-bright active:scale-95 transition-all">
+                    READ THE DOCS
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full border-t border-purple-500/10 bg-[#0e0e0e]">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 py-12 gap-8 max-w-7xl mx-auto">
+<div class="flex flex-col items-center md:items-start gap-2">
+<span class="text-lg font-black text-white tracking-widest">BEATMAKER TWIN</span>
+<p class="font-['Space_Grotesk'] text-[10px] tracking-widest uppercase text-neutral-500">
+                    © 2024 BEATMAKER TWIN // THE SONIC SYNTHESIST PROTOCOL
+                </p>
+</div>
+<nav class="flex gap-8 font-['Space_Grotesk'] text-[10px] tracking-widest uppercase">
+<a class="text-neutral-500 hover:text-purple-400 transition-all hover:tracking-widest" href="#">SYNTHS</a>
+<a class="text-neutral-500 hover:text-purple-400 transition-all hover:tracking-widest" href="#">OSCILLATORS</a>
+<a class="text-neutral-500 hover:text-purple-400 transition-all hover:tracking-widest" href="#">CONNECT</a>
+<a class="text-neutral-500 hover:text-purple-400 transition-all hover:tracking-widest" href="#">TERMS</a>
+</nav>
+</div>
+</footer>
+</body></html>

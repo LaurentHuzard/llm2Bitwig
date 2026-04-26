@@ -35,35 +35,35 @@ This roadmap outlines the path to full coverage of the Bitwig Studio API within 
 
 ---
 
-## 🟠 Phase 3: Arranger & Timeline Mastery
-*Focus: Deep control over the linear arrangement and timeline markers.*
+## 🔵 Phase 3: Creative Note & Audio Tools (Complete)
+*Focus: Generating music, handling inputs, and detailed editing.*
 
-### Issue 3.1: Arranger Control
-**Objective**: Manipulate the arrangement view programmatically.
-- [ ] **Subtask 3.1.1**: Implement `Arranger` interface (cue visibility, playback follow).
-- [ ] **Subtask 3.1.2**: Add `Arranger` clips manipulation (move/copy/delete clips on timeline).
-- [ ] **Subtask 3.1.3**: Implement `TimelineEditor` specific interactions (zoom/scroll).
+### Issue 3.1: Note Input & Expressions
+**Objective**: Advanced note entry and MPE support.
+- [x] **Subtask 3.1.1**: Implement `NoteInput` with `NoteExpression` (Poly Aftertouch, Timbre, etc.).
+- [x] **Subtask 3.1.2**: Implement `DrumPadBank` and `DrumPad` interactions (scrolling/layers).
+- [ ] **Subtask 3.1.3**: Implement `PianoKeyboard` layout awareness.
 
-### Issue 3.2: Cue Markers
-**Objective**: Navigation via song sections.
-- [ ] **Subtask 3.2.1**: Implement `CueMarkerBank` for listing markers.
-- [ ] **Subtask 3.2.2**: Tool to create `CueMarker` at current position.
-- [ ] **Subtask 3.2.3**: Tools to jump to, rename, and color markers.
+### Issue 3.2: Groove & Quantization
+**Objective**: Rhythmic feel and timing.
+- [x] **Subtask 3.2.1**: Implement `Groove` object control (shuffle info, accent).
 
 ---
 
-## 🔵 Phase 4: Creative Note & Audio Tools
-*Focus: Generating music, handling inputs, and detailed editing.*
+## 🟠 Phase 4: Arranger & Timeline Mastery (Partially Complete)
+*Focus: Deep control over the linear arrangement and timeline markers.*
 
-### Issue 4.1: Note Input & Expressions
-**Objective**: Advanced note entry and MPE support.
-- [ ] **Subtask 4.1.1**: Implement `NoteInput` with `NoteExpression` (Poly Aftertouch, Timbre, etc.).
-- [ ] **Subtask 4.1.2**: Implement `DrumPadBank` and `DrumPad` interactions (scrolling/layers).
-- [ ] **Subtask 4.1.3**: Implement `PianoKeyboard` layout awareness.
+### Issue 4.1: Arranger Control
+**Objective**: Manipulate the arrangement view programmatically.
+- [x] **Subtask 4.1.1**: Implement `Arranger` interface (cue visibility, playback follow).
+- [ ] **Subtask 4.1.2**: [API Limitation] Add `Arranger` clips manipulation (Note: API only supports markers).
+- [x] **Subtask 4.1.3**: Implement `TimelineEditor` specific interactions (zoom/scroll).
 
-### Issue 4.2: Groove & Quantization
-**Objective**: Rhythmic feel and timing.
-- [ ] **Subtask 4.2.1**: Implement `Groove` object control (shuffle info, accent).
+### Issue 4.2: Cue Markers
+**Objective**: Navigation via song sections.
+- [x] **Subtask 4.2.1**: Implement `CueMarkerBank` for listing markers.
+- [x] **Subtask 4.2.2**: Tool to create `CueMarker` at current position.
+- [x] **Subtask 4.2.3**: Tools to jump to, rename, and color markers.
 
 ---
 
@@ -118,7 +118,7 @@ This roadmap outlines the path to full coverage of the Bitwig Studio API within 
 ---
 
 ## 🏁 Execution Strategy for Devs
-1. **Pick an Issue**: Start with **Phase 2** (Hardware/MIDI) or **Phase 3** (Arranger) as they open the most new capabilities.
+1. **Pick an Issue**: Start with **Phase 5** (Browsing) or **Phase 7** (Global Actions) as they open the most new capabilities.
 2. **Scope**: Each Subtask should ideally correspond to a single PR or module update.
 3. **Verify**: Use the `view_file` tool on `bitwig-api-docs/<ClassName>.md` before implementation to understand methods.
 4. **Test**: Create a reproduction script ensuring the new tool affects the Bitwig state correctly.

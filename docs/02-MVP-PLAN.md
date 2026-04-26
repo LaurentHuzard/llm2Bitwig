@@ -1,7 +1,9 @@
 # Bitwig MCP Server - MVP Features & Implementation Plan
 
 ## Vision
+
 Create a **production-ready LLM controller** for Bitwig that enables AI to:
+
 1. Manage projects (tracks, scenes, organization)
 2. Control playback and recording
 3. Create and manipulate sounds (devices, parameters)
@@ -13,10 +15,12 @@ Create a **production-ready LLM controller** for Bitwig that enables AI to:
 ## MUST-HAVE FEATURES (MVP - Phase 1)
 
 ### Feature Set A: Transport Control
+
 **What:** Full playback control + tempo/loop management
 **Why:** Fundamental for any LLM interaction; enables music production automation
 
 **Tools to implement:**
+
 - `transport.play()` ✅ (exists)
 - `transport.stop()` ✅ (exists)
 - `transport.restart()` ✅ (exists)
@@ -37,10 +41,12 @@ Create a **production-ready LLM controller** for Bitwig that enables AI to:
 ---
 
 ### Feature Set B: Track Management
+
 **What:** Create, organize, and configure tracks
 **Why:** Core workflow for composition and arrangement
 
 **Tools to implement:**
+
 - `track.create(type, name?, position?)` → returns trackId ✅ (partial)
 - `track.delete(trackId)`
 - `track.list()` → returns [{id, name, type, volume, pan, muted, armed}...]
@@ -61,10 +67,12 @@ Create a **production-ready LLM controller** for Bitwig that enables AI to:
 ---
 
 ### Feature Set C: Device Chain Control
+
 **What:** Load, configure, and manipulate VST/AU devices
 **Why:** Essential for sound design and parameter automation
 
 **Tools to implement:**
+
 - `device.load(trackId, deviceBrowserPath)` → loads device
 - `device.delete(trackId, deviceSlotIndex)`
 - `device.list(trackId)` → returns [{id, name, vendor, type}...]
@@ -83,10 +91,12 @@ Create a **production-ready LLM controller** for Bitwig that enables AI to:
 ---
 
 ### Feature Set D: Mixer & Sends
+
 **What:** Control sends, returns, and mixing topology
 **Why:** Essential for mixing and sidechain operations
 
 **Tools to implement:**
+
 - `mixer.getMasterVolume()` → current master volume
 - `mixer.setMasterVolume(volume)`
 - `mixer.setTrackVolume(trackId, volume)` (duplicate for consistency)
@@ -102,10 +112,12 @@ Create a **production-ready LLM controller** for Bitwig that enables AI to:
 ---
 
 ### Feature Set E: Clip Launcher & Scenes
+
 **What:** Trigger clips and scenes; navigate arrangement
 **Why:** Performance control and scene-based composition
 
 **Tools to implement:**
+
 - `clip.launch(trackId, clipSlotIndex)`
 - `clip.stop(trackId)`
 - `clip.stopAll()`
@@ -124,10 +136,12 @@ Create a **production-ready LLM controller** for Bitwig that enables AI to:
 ---
 
 ### Feature Set F: State Observation & Feedback
+
 **What:** Async callbacks for state changes to inform LLM of changes
 **Why:** Essential for responsive LLM interactions (e.g., "tell me when track 3 is done playing")
 
 **Tools to implement:**
+
 - `state.subscribe(event, callback)` → subscribe to changes
   - Events: `transport.playing`, `transport.stopped`, `clip.launched`, `track.armed`, `device.bypassed`, `parameter.changed`, `scene.launched`
 - `state.unsubscribe(eventId)`
@@ -218,6 +232,7 @@ WEEK 4:
 ---
 
 ## Success Criteria (MVP Complete)
+
 - [ ] LLM can create a track, load a device, and play back
 - [ ] LLM can adjust parameters (volume, tempo, send levels)
 - [ ] LLM can launch clips and scenes
@@ -229,6 +244,7 @@ WEEK 4:
 ---
 
 ## Notes
+
 - API learning curve: Bitwig controller API is extensive but well-documented
 - Testing strategy: Use mock tracks/devices for unit tests; real Bitwig for integration
 - Performance: State observation should use efficient callbacks, not polling

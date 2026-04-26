@@ -156,4 +156,3 @@ If no MCP peer is connected over stdio, startup may fail quickly with `Failed to
   - Start ear service or avoid `ear_*` tools until it is running.
 - `Failed to enqueue message`
   - Launch from an MCP host/client that provides active stdio transport.
-
