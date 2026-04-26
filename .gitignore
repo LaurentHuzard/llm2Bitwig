@@ -12,3 +12,7 @@ gradle-*/
 
 # Local backup files
 *.bak
+
+# Test artifacts
+playwright-report/
+test-results/
