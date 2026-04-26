@@ -5,3 +5,10 @@ node_modules/
 /dist/index.js
 /dist/index.js.map
 beat-twin/venv/
+
+# Local toolchains and downloaded archives
+gradle-*/
+*.zip
+
+# Local backup files
+*.bak
