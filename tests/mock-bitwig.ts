@@ -7,6 +7,17 @@ import net from "net";
 const PORT = 8888;
 const HOST = "127.0.0.1";
 
+type MockMarker = {
+    index: number;
+    name: string;
+    position: number;
+    color: { r: number; g: number; b: number };
+};
+
+const mockState = globalThis as typeof globalThis & {
+    mockMarkers?: MockMarker[];
+};
+
 const server = net.createServer((socket) => {
     console.log("Mock Bitwig: Client connected");
 
@@ -114,13 +125,13 @@ function processRequest(
     } else if (method.startsWith("arranger.")) {
         if (method === "arranger.cues.list") {
             // Mock markers
-            if (!global.mockMarkers) {
-                global.mockMarkers = [
+            if (!mockState.mockMarkers) {
+                mockState.mockMarkers = [
                     { index: 0, name: "Intro", position: 0.0, color: { r: 0.5, g: 0.5, b: 0.5 } },
                     { index: 1, name: "Verse", position: 32.0, color: { r: 0.2, g: 0.8, b: 0.2 } }
                 ];
             }
-            result = global.mockMarkers;
+            result = mockState.mockMarkers;
         } else if (method === "arranger.cues.rename") {
             // request.params is [index, name]
             // We need to parse params from the request object if possible, but mock implementation here is rudimentary.
@@ -129,21 +140,21 @@ function processRequest(
             // server-mcp/index.ts calls callBitwig(method, [args...])
             // So params here is an array.
             const params = request.params as any[];
-            if (global.mockMarkers && params && params.length >= 2) {
+            if (mockState.mockMarkers && params && params.length >= 2) {
                 const index = params[0];
                 const name = params[1];
-                const m = global.mockMarkers.find((m: any) => m.index === index);
+                const m = mockState.mockMarkers.find((m) => m.index === index);
                 if (m) m.name = name;
             }
             result = "OK";
         } else if (method === "arranger.cues.color") {
             const params = request.params as any[];
-            if (global.mockMarkers && params && params.length >= 4) {
+            if (mockState.mockMarkers && params && params.length >= 4) {
                 const index = params[0];
                 const r = params[1];
                 const g = params[2];
                 const b = params[3];
-                const m = global.mockMarkers.find((m: any) => m.index === index);
+                const m = mockState.mockMarkers.find((m) => m.index === index);
                 if (m) m.color = { r, g, b };
             }
             result = "OK";
@@ -151,9 +162,9 @@ function processRequest(
             result = "OK";
         }
     } else if (method === "transport.add_cue_marker") {
-        if (!global.mockMarkers) global.mockMarkers = [];
-        global.mockMarkers.push({
-            index: global.mockMarkers.length,
+        if (!mockState.mockMarkers) mockState.mockMarkers = [];
+        mockState.mockMarkers.push({
+            index: mockState.mockMarkers.length,
             name: "New Marker",
             position: 16.0, // Hardcoded for test
             color: { r: 1, g: 1, b: 0 }

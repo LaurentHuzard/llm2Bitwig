@@ -2,6 +2,14 @@
 
 This roadmap turns the Controller API surface into a practical MCP toolset. It assumes a Bitwig controller extension (JS) bridges to a Node MCP server.
 
+## 2026-04-27 next slice
+
+- Keep `server-mcp-java/` as the likely active MCP server lane unless a later pass proves the TypeScript server should return.
+- Run the socket-based tests on the host, because sandboxed execution currently blocks local TCP and pipe binding.
+- Stabilize device parameter tools next: cursor device status, remote page listing, parameter set/reset/touch.
+- Then stabilize clip launcher tools: scene/slot listing, launch/stop, create empty clip, record into slot.
+- Before deleting anything, classify `server-mcp/`, `frontend/`, `website/`, nested `beat-twin/`, `WTF-ANTIPASGRAV/`, Gradle archives, `.venv`, and generated outputs as active, legacy, generated, or parked.
+
 ## Must-have features (v1)
 
 1) **Transport + timeline control**

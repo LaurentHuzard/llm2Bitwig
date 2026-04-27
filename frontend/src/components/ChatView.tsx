@@ -111,26 +111,31 @@ export const ChatView: React.FC = () => {
 
                 const toolResponses = [];
                 for (const toolCall of responseMessage.tool_calls) {
+                    if (toolCall.type !== 'function') {
+                        continue;
+                    }
+
+                    const functionCall = toolCall.function;
                     if (mcpClient) {
-                        console.log(`Calling tool: ${toolCall.function.name}`);
+                        console.log(`Calling tool: ${functionCall.name}`);
                         try {
                             const result = await mcpClient.callTool({
-                                name: toolCall.function.name,
-                                arguments: JSON.parse(toolCall.function.arguments)
+                                name: functionCall.name,
+                                arguments: JSON.parse(functionCall.arguments)
                             });
 
                             // Handle result structure from MCP SDK
                             toolResponses.push({
                                 tool_call_id: toolCall.id,
                                 role: 'tool',
-                                name: toolCall.function.name,
+                                name: functionCall.name,
                                 content: JSON.stringify(result)
                             });
                         } catch (err: any) {
                             toolResponses.push({
                                 tool_call_id: toolCall.id,
                                 role: 'tool',
-                                name: toolCall.function.name,
+                                name: functionCall.name,
                                 content: `Error: ${err.message}`
                             });
                         }
