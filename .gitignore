@@ -2,6 +2,10 @@ node_modules/
 .DS_Store
 .env
 .idea/
+.codex
+__pycache__/
+*.py[cod]
+*.log
 /dist/index.js
 /dist/index.js.map
 beat-twin/venv/
