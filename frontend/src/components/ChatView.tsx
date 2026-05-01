@@ -15,6 +15,33 @@ interface Message {
     isError?: boolean;
 }
 
+type McpTool = {
+    name: string;
+    description?: string;
+    inputSchema?: Record<string, unknown>;
+};
+
+type ChatMessageParam = OpenAI.Chat.Completions.ChatCompletionMessageParam;
+type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
+type ChatToolMessageParam = OpenAI.Chat.Completions.ChatCompletionToolMessageParam;
+
+function toOpenAiHistory(messages: Message[]): ChatMessageParam[] {
+    return messages.flatMap((message): ChatMessageParam[] => {
+        if (message.role === 'tool') {
+            if (!message.tool_call_id) return [];
+            return [{ role: 'tool', content: message.content, tool_call_id: message.tool_call_id }];
+        }
+
+        if (message.role === 'system') return [{ role: 'system', content: message.content }];
+        if (message.role === 'assistant') return [{ role: 'assistant', content: message.content }];
+        return [{ role: 'user', content: message.content }];
+    });
+}
+
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 export const ChatView: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([
         { role: 'system', content: 'Welcome to the Bitwig AI Assistant. I can help you control Bitwig Studio.' }
@@ -25,7 +52,7 @@ export const ChatView: React.FC = () => {
     const [showSettings, setShowSettings] = useState(!apiKey);
     const [mcpClient, setMcpClient] = useState<Client | null>(null);
     const [mcpConnected, setMcpConnected] = useState(false);
-    const [availableTools, setAvailableTools] = useState<any[]>([]);
+    const [availableTools, setAvailableTools] = useState<McpTool[]>([]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +63,8 @@ export const ChatView: React.FC = () => {
 
     // Connect to MCP Server
     useEffect(() => {
+        let activeClient: Client | null = null;
+
         const connectMCP = async () => {
             try {
                 const transport = new WebSocketClientTransport(new URL(MCP_SERVER_URL));
@@ -45,12 +74,13 @@ export const ChatView: React.FC = () => {
                 );
 
                 await client.connect(transport);
+                activeClient = client;
                 setMcpClient(client);
                 setMcpConnected(true);
                 console.log('Connected to MCP Server');
 
                 const tools = await client.listTools();
-                setAvailableTools(tools.tools);
+                setAvailableTools(tools.tools as McpTool[]);
                 console.log('Available tools:', tools.tools.length);
             } catch (error) {
                 console.error('Failed to connect to MCP Server:', error);
@@ -61,7 +91,7 @@ export const ChatView: React.FC = () => {
         connectMCP();
 
         return () => {
-            mcpClient?.close().catch(console.error);
+            activeClient?.close().catch(console.error);
         };
     }, []); // Run once on mount
 
@@ -84,20 +114,15 @@ export const ChatView: React.FC = () => {
                 model: 'gpt-4o', // Or gpt-3.5-turbo
                 messages: [
                     { role: 'system', content: 'You are a helpful assistant controlling Bitwig Studio via MCP. Use the provided tools to execute user commands.' },
-                    ...messages.map(m => ({
-                        role: m.role,
-                        content: m.content,
-                        name: m.name,
-                        tool_call_id: m.tool_call_id
-                    }) as any),
+                    ...toOpenAiHistory(messages),
                     { role: 'user', content: userMessage }
                 ],
-                tools: availableTools.map(tool => ({
+                tools: availableTools.map((tool): ChatCompletionTool => ({
                     type: 'function',
                     function: {
                         name: tool.name,
                         description: tool.description,
-                        parameters: tool.inputSchema
+                        parameters: tool.inputSchema ?? { type: 'object', properties: {} }
                     }
                 }))
             });
@@ -109,7 +134,7 @@ export const ChatView: React.FC = () => {
             if (responseMessage.tool_calls) {
                 setMessages(prev => [...prev, { role: 'assistant', content: 'Executing commands...' }]);
 
-                const toolResponses = [];
+                const toolResponses: ChatToolMessageParam[] = [];
                 for (const toolCall of responseMessage.tool_calls) {
                     if (toolCall.type !== 'function') {
                         continue;
@@ -128,15 +153,13 @@ export const ChatView: React.FC = () => {
                             toolResponses.push({
                                 tool_call_id: toolCall.id,
                                 role: 'tool',
-                                name: functionCall.name,
                                 content: JSON.stringify(result)
                             });
-                        } catch (err: any) {
+                        } catch (err: unknown) {
                             toolResponses.push({
                                 tool_call_id: toolCall.id,
                                 role: 'tool',
-                                name: functionCall.name,
-                                content: `Error: ${err.message}`
+                                content: `Error: ${errorMessage(err)}`
                             });
                         }
                     }
@@ -147,16 +170,11 @@ export const ChatView: React.FC = () => {
                     model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: 'You are a helpful assistant controlling Bitwig Studio via MCP.' },
-                        ...messages.map(m => ({
-                            role: m.role,
-                            content: m.content,
-                            name: m.name,
-                            tool_call_id: m.tool_call_id
-                        }) as any),
+                        ...toOpenAiHistory(messages),
                         { role: 'user', content: userMessage },
                         responseMessage,
                         ...toolResponses
-                    ] as any
+                    ]
                 });
 
                 setMessages(prev => [...prev, { role: 'assistant', content: finalCompletion.choices[0].message.content || 'Action completed.' }]);
@@ -166,9 +184,9 @@ export const ChatView: React.FC = () => {
                 setMessages(prev => [...prev, { role: 'assistant', content: responseMessage.content || '' }]);
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('LLM Error:', error);
-            setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}`, isError: true }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${errorMessage(error)}`, isError: true }]);
         } finally {
             setIsLoading(false);
         }

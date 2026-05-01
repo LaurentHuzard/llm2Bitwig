@@ -1,0 +1,198 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SemanticAudioAnalysis",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "analyser_version",
+    "source",
+    "duration",
+    "audio_evidence",
+    "instrument_detection",
+    "semantic_read",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "semantic-audio-analysis.v1"
+    },
+    "analyser_version": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "filename": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0
+    },
+    "audio_evidence": {
+      "type": "object",
+      "required": ["tempo", "key", "loudness", "spectral", "rhythm"],
+      "properties": {
+        "tempo": { "$ref": "#/definitions/valueWithConfidence" },
+        "key": {
+          "type": "object",
+          "required": ["value", "confidence"],
+          "properties": {
+            "value": { "type": "string" },
+            "confidence": { "$ref": "#/definitions/score" }
+          }
+        },
+        "loudness": {
+          "type": "object",
+          "required": ["rms", "peak", "dynamic_range", "silence_ratio"],
+          "properties": {
+            "rms": { "type": "number" },
+            "peak": { "type": "number" },
+            "dynamic_range": { "type": "number" },
+            "silence_ratio": { "$ref": "#/definitions/score" }
+          }
+        },
+        "spectral": {
+          "type": "object",
+          "required": ["centroid", "rolloff", "bandwidth", "flatness", "zero_crossing_rate", "spectral_balance", "bands"],
+          "properties": {
+            "centroid": { "type": "number" },
+            "rolloff": { "type": "number" },
+            "bandwidth": { "type": "number" },
+            "flatness": { "type": "number" },
+            "zero_crossing_rate": { "type": "number" },
+            "spectral_balance": { "type": "number" },
+            "bands": {
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            },
+            "mfcc_mean": {
+              "type": "array",
+              "items": { "type": "number" }
+            }
+          }
+        },
+        "rhythm": {
+          "type": "object",
+          "required": ["onset_count", "onset_density_per_second", "onset_mean_strength", "onset_peak_strength", "beat_stability"],
+          "properties": {
+            "onset_count": { "type": "integer", "minimum": 0 },
+            "onset_density_per_second": { "type": "number" },
+            "onset_mean_strength": { "type": "number" },
+            "onset_peak_strength": { "type": "number" },
+            "beat_stability": { "$ref": "#/definitions/score" }
+          }
+        }
+      }
+    },
+    "instrument_detection": {
+      "type": "object",
+      "required": ["primary", "confidence", "candidates", "transients", "notes"],
+      "properties": {
+        "primary": { "type": "string" },
+        "confidence": { "$ref": "#/definitions/score" },
+        "candidates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/labelScore" }
+        },
+        "transients": {
+          "type": "object"
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "semantic_read": {
+      "type": "object",
+      "required": ["mood", "vibe", "weirdness", "genericness", "coherence", "potential", "interpretation"],
+      "properties": {
+        "mood": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/labelScoreEvidence" }
+        },
+        "vibe": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/labelScoreEvidence" }
+        },
+        "weirdness": { "$ref": "#/definitions/scoredSource" },
+        "genericness": { "$ref": "#/definitions/scoredSource" },
+        "coherence": { "$ref": "#/definitions/scoredSource" },
+        "potential": { "$ref": "#/definitions/scoredSource" },
+        "interpretation": {
+          "type": "object",
+          "required": ["summary", "reason_to_keep", "suggested_mutation", "caveats"],
+          "properties": {
+            "summary": { "type": "string" },
+            "reason_to_keep": { "type": "string" },
+            "suggested_mutation": { "type": "string" },
+            "caveats": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["models"],
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "status"],
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": "string" },
+              "status": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "valueWithConfidence": {
+      "type": "object",
+      "required": ["value", "confidence"],
+      "properties": {
+        "value": { "type": "number" },
+        "confidence": { "$ref": "#/definitions/score" }
+      }
+    },
+    "labelScore": {
+      "type": "object",
+      "required": ["label", "score"],
+      "properties": {
+        "label": { "type": "string" },
+        "score": { "type": "number" }
+      }
+    },
+    "labelScoreEvidence": {
+      "type": "object",
+      "required": ["label", "score", "evidence"],
+      "properties": {
+        "label": { "type": "string" },
+        "score": { "$ref": "#/definitions/score" },
+        "evidence": { "type": "string" }
+      }
+    },
+    "scoredSource": {
+      "type": "object",
+      "required": ["score", "source"],
+      "properties": {
+        "score": { "$ref": "#/definitions/score" },
+        "source": { "type": "string" },
+        "label": { "type": "string" }
+      }
+    }
+  }
+}

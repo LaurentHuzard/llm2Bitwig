@@ -310,7 +310,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "ear_analyze",
-        description: "Analyze the last N seconds of audio (BPM, Key, Spectral Energy)",
+        description: "Analyze the last N seconds of audio (BPM, key, spectral energy, likely kick/snare/hat/instrument family)",
         inputSchema: {
           type: "object",
           properties: {
