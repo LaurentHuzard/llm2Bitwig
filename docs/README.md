@@ -8,6 +8,16 @@ This folder contains a complete strategic and technical analysis for building an
 
 ## 📋 Documents (Read in Order)
 
+### Active Workflow Notes
+
+- **task.md** - Current scoped task board for the agentic Bitwig composition E2E.
+- **agentic-bitwig-composition-workflow.md** - Multi-agent studio workflow for brainstorming, building, and validating a Bitwig song sketch with MCP plus Computer Use review.
+- **audio-detection-tools.md** - Current audio analyser surface and endpoint contract.
+- **semantic-audio-conception.md** - Concept and analysis for mood, vibe, weirdness, and identity-risk detection.
+- **semantic-audio-feature-spec.md** - Feature spec for semantic audio analysis.
+- **semantic-audio-backlog.md** - Implementation backlog for the semantic analyser.
+- **semantic-audio-subagent-review-export.md** - Exported visible subagent briefs and review notes.
+
 ### 0️⃣ **00-EXECUTIVE-SUMMARY.md** ⭐ START HERE
 **Length:** 5 min read | **Audience:** Project managers, decision makers
 

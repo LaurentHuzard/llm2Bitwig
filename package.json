@@ -28,6 +28,7 @@
     "build:controller": "esbuild bitwig-controller/controller-mcp.ts --bundle --format=iife --platform=neutral --target=es2017 --outfile=bitwig-controller/controller-mcp.js",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.tests.json --noEmit && tsc -p bitwig-controller/tsconfig.json --noEmit && tsc -p frontend/tsconfig.json --noEmit",
     "test": "node --import tsx tests/runner.ts",
+    "test:e2e:bitwig": "pnpm run build:server && BITWIG_REAL_E2E=1 node --import tsx tests/e2e_bitwig_composition.ts",
     "test:inspector": "npx @modelcontextprotocol/inspector tests/test-env/mcp-config.json",
     "test:inspector-cli": "npx @modelcontextprotocol/inspector --cli tests/test-env/mcp-config.json"
   }

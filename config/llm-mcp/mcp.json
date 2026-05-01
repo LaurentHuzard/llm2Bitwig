@@ -4,7 +4,7 @@
       "name": "bitwig-mcp",
       "command": "node",
       "args": [
-        "/home/taenia/Code/lolOS/beat-twin/dist/index.js"
+        "/home/taenia/Code/lolOS/Projects/beat-twin/dist/index.js"
       ],
       "env": {}
     }
