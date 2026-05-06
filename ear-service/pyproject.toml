@@ -1,0 +1,13 @@
+[project]
+name = "beat-twin-ear-service"
+version = "0.1.0"
+description = "Beat Twin FastAPI ear service for live audio analysis"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.100.0",
+  "uvicorn>=0.20.0",
+  "sounddevice>=0.4.6",
+  "numpy>=1.20.0",
+  "python-multipart",
+  "librosa>=0.10.0",
+]

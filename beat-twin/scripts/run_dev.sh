@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-source venv/bin/activate
-export PYTHONPATH=$(pwd)
+set -e
+cd "$(dirname "$0")/.."
 
 echo "Starting event bus..."
-python services/event_bus/server.py &
+uv run --no-sync python -m services.event_bus.server &
 sleep 1
 
 echo "Starting feature core..."
-python services/feature_core/feature_core.py &
+uv run --no-sync python -m services.feature_core.feature_core &
 sleep 1
 
 echo "Starting audio tap..."
-python services/audio_tap/audio_tap.py
+uv run --no-sync python -m services.audio_tap.audio_tap

@@ -12,13 +12,14 @@ The goal of this project is to demonstrate how an AI Agent can control a Digital
 
 ## 🏗 Architecture
 
-The project consists of two main components communicating over a local TCP socket:
+The project consists of three local components:
 
 1. **MCP Server (`server-mcp-java/`, built via Gradle)**
    
    - A Java application that implements the Model Context Protocol using the official `io.modelcontextprotocol.sdk`.
    - It listens for instructions from an MCP Client (like an AI Assistant) over Standard I/O.
    - It acts as a TCP client and connects to Bitwig on port `8888` to relay commands.
+   - It also calls the ear service on `http://127.0.0.1:8001` for `ear_*` audio tools.
    - *(Note: The legacy TypeScript server remains in `server-mcp/` during the transition period).*
 
 2. **Bitwig Controller Script (`bitwig-controller/controller-mcp.ts`, bundled to `bitwig-controller/controller-mcp.js`)**
@@ -27,12 +28,27 @@ The project consists of two main components communicating over a local TCP socke
    - It connects to the MCP Server via TCP.
    - It executes the API commands (e.g., `application.createInstrumentTrack()`) received from the server.
 
+3. **Ear Service (`ear-service/`)**
+
+   - A FastAPI backend for live audio levels, recent-buffer analysis, uploaded-file analysis, and folder scans.
+   - It starts an optional local audio capture thread with `sounddevice`.
+   - It exposes semantic audio analysis from `analysis_core.py` and uploaded-file handling from `file_analysis.py`.
+
 ```mermaid
 graph LR
-    A[AI Agent / MCP Client] -->|MCP Protocol| B[Node.js MCP Server]
+    A[AI Agent / MCP Client] -->|MCP Protocol| B[Java MCP Server]
     B -->|TCP :8888| C[Bitwig Controller Script]
+    B -->|HTTP :8001| E[Ear Service]
     C -->|Bitwig API| D[Bitwig Studio]
 ```
+
+## 📂 Subsystem READMEs
+
+- [`server-mcp-java/README.md`](server-mcp-java/README.md) - current MCP server, Java build/test commands, MCP host setup, and `ear_*` tool integration.
+- [`ear-service/README.md`](ear-service/README.md) - audio backend startup, health checks, and endpoint contract.
+- [`frontend/README.md`](frontend/README.md) - experimental React/Vite controller UI.
+- [`beat-twin/README.md`](beat-twin/README.md) - older audio-core MVP runner for the nested prototype.
+- [`docs/README.md`](docs/README.md) - roadmap, workflow, semantic-audio, and planning document index.
 
 ## ✨ Features / Tools
 
@@ -104,6 +120,9 @@ The following MCP capabilities are currently implemented:
 ### 1. Prerequisites
 
 - [Node.js](https://nodejs.org/) (v16 or higher)
+- Java 17+ for the current MCP server in `server-mcp-java/`
+- Python 3.11+ for the FastAPI ear service and nested audio prototype
+- [uv](https://docs.astral.sh/uv/) for Python dependency management
 - [Bitwig Studio](https://www.bitwig.com/) installed
 
 ### 2. Install Dependencies
@@ -162,7 +181,33 @@ cd server-mcp-java
 
 *(Alternatively, to run the legacy Node server: `node server-mcp/dist/index.js`)*
 
-### Controller Build (Bitwig)
+### 2. Start the Ear Service Backend
+
+Run this when you want live audio analysis, uploaded-file analysis, folder scans, or MCP `ear_*` tools.
+
+```bash
+cd ear-service
+uv sync
+uv run --no-sync python main.py
+```
+
+The backend listens on `http://127.0.0.1:8001`. Quick checks:
+
+```bash
+curl http://127.0.0.1:8001/
+curl http://127.0.0.1:8001/devices
+```
+
+For reload during backend work:
+
+```bash
+cd ear-service
+uv run --no-sync uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+```
+
+See [`ear-service/README.md`](ear-service/README.md) for endpoints and troubleshooting notes.
+
+### 3. Controller Build (Bitwig)
 
 Any change in `bitwig-controller/**/*.ts` needs rebuilding so Bitwig can load the single bundled script at `bitwig-controller/controller-mcp.js`:
 
@@ -172,11 +217,11 @@ pnpm run build:controller
 
 Running this command compiles `bitwig-controller/controller-mcp.ts` into one IIFE bundle with all modules inlined and overwrites `bitwig-controller/controller-mcp.js`, which is the file you drop into Bitwig's Controller Scripts directory.
 
-### 2. Connect your AI Agent
+### 4. Connect your AI Agent
 
 Configure your MCP Client (e.g., Claude Desktop, Zed, or other MCP-compliant tools) to run the command above.
 
-### 3. Example Prompts
+### 5. Example Prompts
 
 Once connected, you can ask your AI Agent:
 
