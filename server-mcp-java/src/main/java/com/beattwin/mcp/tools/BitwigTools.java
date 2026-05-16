@@ -15,11 +15,58 @@ import reactor.core.publisher.Mono;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class BitwigTools {
+
+    public static final String TOOL_PROFILE_ENV = "BITWIG_MCP_TOOL_PROFILE";
+
+    private static final String DEFAULT_TOOL_PROFILE = "core";
+
+    private static final Set<String> CORE_TOOL_NAMES = Set.of(
+            "project_get_summary",
+            "transport_play",
+            "transport_stop",
+            "transport_restart",
+            "transport_get_tempo",
+            "transport_set_tempo",
+            "transport_get_position",
+            "transport_set_position",
+            "transport_playing_status",
+            "track_bank_get_status",
+            "track_list",
+            "track_get_info",
+            "track_bank_select",
+            "track_rename",
+            "track_set_color",
+            "clip_get_grid",
+            "clip_get_status",
+            "clip_launch",
+            "clip_stop",
+            "clip_create",
+            "clip_delete",
+            "scene_list",
+            "scene_launch",
+            "cursor_track_get_status",
+            "cursor_device_get_status",
+            "device_get_status",
+            "device_list",
+            "device_get_remote_controls",
+            "device_set_remote_control",
+            "browser_get_status",
+            "browser_set_filter",
+            "browser_list_results",
+            "browser_select_result",
+            "browser_commit",
+            "browser_cancel",
+            "ear_status",
+            "ear_get_levels",
+            "ear_analyze"
+    );
 
     private final BitwigClient bitwigClient;
     private final EarServiceClient earServiceClient;
@@ -31,13 +78,22 @@ public class BitwigTools {
     }
 
     public List<AsyncToolSpecification> getTools() {
+        return getTools(System.getenv().getOrDefault(TOOL_PROFILE_ENV, DEFAULT_TOOL_PROFILE));
+    }
+
+    public List<AsyncToolSpecification> getTools(String profileSpec) {
         List<AsyncToolSpecification> specs = new ArrayList<>();
+        Set<String> profileTokens = parseProfile(profileSpec);
         try (InputStream in = getClass().getResourceAsStream("/tools.json")) {
             if (in == null) throw new RuntimeException("tools.json not found");
             
             List<Map<String, Object>> toolsDef = mapper.readValue(in, new TypeReference<>() {});
             for (Map<String, Object> def : toolsDef) {
                 String name = (String) def.get("name");
+                if (!shouldExposeTool(name, profileTokens)) {
+                    continue;
+                }
+
                 String description = (String) def.get("description");
                 Map<String, Object> schemaMap = (Map<String, Object>) def.get("inputSchema");
                 
@@ -62,10 +118,45 @@ public class BitwigTools {
                 });
                 specs.add(spec);
             }
+            System.err.printf("Registered %d/%d Bitwig MCP tools using profile '%s'%n",
+                    specs.size(), toolsDef.size(), String.join(",", profileTokens));
             return specs;
         } catch (Exception e) {
             throw new RuntimeException("Failed to register tools", e);
         }
+    }
+
+    private Set<String> parseProfile(String profileSpec) {
+        String rawProfile = profileSpec == null || profileSpec.isBlank() ? DEFAULT_TOOL_PROFILE : profileSpec;
+        Set<String> tokens = new LinkedHashSet<>();
+        for (String token : rawProfile.split(",")) {
+            String normalized = token.trim().toLowerCase();
+            if (!normalized.isBlank()) {
+                tokens.add(normalized);
+            }
+        }
+        if (tokens.isEmpty()) {
+            tokens.add(DEFAULT_TOOL_PROFILE);
+        }
+        return tokens;
+    }
+
+    private boolean shouldExposeTool(String name, Set<String> profileTokens) {
+        if (profileTokens.contains("full") || profileTokens.contains("all") || profileTokens.contains("*")) {
+            return true;
+        }
+
+        if (profileTokens.contains("core") && CORE_TOOL_NAMES.contains(name)) {
+            return true;
+        }
+
+        for (String token : profileTokens) {
+            if (name.equals(token) || name.startsWith(token + "_")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private CompletableFuture<JsonNode> execute(String name, Map<String, Object> args) {

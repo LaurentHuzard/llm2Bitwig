@@ -115,20 +115,27 @@
         case "browser.select_result":
           if (params && params[0] !== void 0) {
             const index = params[0];
-            const item = this.resultBank.getItemAt(index);
-            if (item) {
-              item.isSelected().set(true);
-              return "OK";
+            this.popupBrowser.selectFirstFile();
+            for (let i = 0; i < index; i++) {
+              this.popupBrowser.selectNextFile();
             }
-            return `Item not found at index ${index}`;
+            return "OK";
           }
           return "Missing index parameter";
         case "browser.set_filter":
-          if (params && params[0] !== void 0) {
-            this.popupBrowser.smartCollectionColumn().getWildcardFilter().set(params[0]);
-            return "OK";
-          }
-          return "Missing filter text parameter";
+          return "Unsupported: Bitwig 6 popup browser does not expose a text filter in the controller API";
+        case "browser.select_first_file":
+          this.popupBrowser.selectFirstFile();
+          return "OK";
+        case "browser.select_last_file":
+          this.popupBrowser.selectLastFile();
+          return "OK";
+        case "browser.select_next_file":
+          this.popupBrowser.selectNextFile();
+          return "OK";
+        case "browser.select_previous_file":
+          this.popupBrowser.selectPreviousFile();
+          return "OK";
         case "browser.commit":
           this.popupBrowser.commit();
           return "OK";
@@ -374,13 +381,21 @@
           this.cursorDevice.selectLast();
           return "OK";
         case "device.browse_insert_before":
-          this.cursorDevice.browseToInsertBeforeDevice();
+          this.cursorDevice.beforeDeviceInsertionPoint().browse();
           return "OK";
         case "device.browse_insert_after":
-          this.cursorDevice.browseToInsertAfterDevice();
+          if (this.cursorDevice.exists().get()) {
+            this.cursorDevice.afterDeviceInsertionPoint().browse();
+          } else {
+            this.cursorDevice.beforeDeviceInsertionPoint().browse();
+          }
           return "OK";
         case "device.browse_replace":
-          this.cursorDevice.browseToReplaceDevice();
+          if (this.cursorDevice.exists().get()) {
+            this.cursorDevice.replaceDeviceInsertionPoint().browse();
+          } else {
+            this.cursorDevice.beforeDeviceInsertionPoint().browse();
+          }
           return "OK";
         case "cursor_track.get_status":
           return {
@@ -1122,190 +1137,6 @@
     }
   };
 
-  // bitwig-controller/modules/HardwareSurface.ts
-  var HardwareSurfaceModule = class {
-    constructor(host2) {
-      this.controls = /* @__PURE__ */ new Map();
-      this.surface = host2.createHardwareSurface();
-    }
-    handleRequest(method, params) {
-      var _a;
-      switch (method) {
-        case "hardware.create_slider":
-          if (params && params[0] !== void 0 && params[1] !== void 0) {
-            const id = params[0];
-            const label = params[1];
-            const isHorizontal = params[2];
-            this.createSlider(id, label, isHorizontal);
-            return "OK";
-          }
-          throw "Missing parameters (id, label)";
-        case "hardware.create_knob":
-          if (params && params[0] !== void 0 && params[1] !== void 0) {
-            const id = params[0];
-            const label = params[1];
-            const isAbsolute = params[2];
-            this.createKnob(id, label, isAbsolute);
-            return "OK";
-          }
-          throw "Missing parameters (id, label)";
-        case "hardware.create_button":
-          if (params && params[0] !== void 0 && params[1] !== void 0) {
-            const id = params[0];
-            const label = params[1];
-            this.createButton(id, label);
-            return "OK";
-          }
-          throw "Missing parameters (id, label)";
-        case "hardware.create_light":
-          if (params && params[0] !== void 0 && params[1] !== void 0) {
-            const id = params[0];
-            const label = params[1];
-            const linkedButtonId = params[2];
-            this.createLight(id, label, linkedButtonId);
-            return "OK";
-          }
-          throw "Missing parameters (id, label)";
-        case "hardware.bind_cc":
-          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
-            const id = params[0];
-            const channel = params[1];
-            const cc = params[2];
-            const isAbsolute = (_a = params[3]) != null ? _a : true;
-            this.bindCC(id, channel, cc, isAbsolute);
-            return "OK";
-          }
-          throw "Missing parameters (id, channel, cc)";
-        case "hardware.bind_note":
-          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
-            const id = params[0];
-            const channel = params[1];
-            const note = params[2];
-            this.bindNote(id, channel, note);
-            return "OK";
-          }
-          throw "Missing parameters (id, channel, note)";
-        case "hardware.update":
-          this.surface.updateHardware();
-          return "OK";
-        case "hardware.invalidate":
-          this.surface.invalidateHardwareOutputState();
-          return "OK";
-        case "hardware.get_controls":
-          return this.getControls();
-        // Inspection of controls
-        case "hardware.control.get_value":
-          if (params && params[0] !== void 0) {
-            return this.getControlValue(params[0]);
-          }
-          throw "Missing parameter (id)";
-      }
-      return void 0;
-    }
-    createSlider(id, label, isHorizontal) {
-      const slider = this.surface.createHardwareSlider(id);
-      slider.setLabel(label);
-      if (isHorizontal) {
-        slider.setOrientation(Orientation.HORIZONTAL);
-      } else {
-        slider.setOrientation(Orientation.VERTICAL);
-      }
-      slider.value().markInterested();
-      this.controls.set(id, slider);
-    }
-    createKnob(id, label, isAbsolute) {
-      if (isAbsolute) {
-        const knob = this.surface.createAbsoluteHardwareKnob(id);
-        knob.setLabel(label);
-        knob.value().markInterested();
-        this.controls.set(id, knob);
-      } else {
-        const knob = this.surface.createRelativeHardwareKnob(id);
-        knob.setLabel(label);
-        this.controls.set(id, knob);
-      }
-    }
-    createButton(id, label) {
-      const button = this.surface.createHardwareButton(id);
-      button.setLabel(label);
-      button.isPressed().markInterested();
-      this.controls.set(id, button);
-    }
-    createLight(id, label, linkedButtonId) {
-      const light = this.surface.createMultiStateHardwareLight(id);
-      light.setLabel(label);
-      light.isOn().markInterested();
-      light.color().markInterested();
-      if (linkedButtonId) {
-        const button = this.controls.get(linkedButtonId);
-        if (button && "setBackgroundLight" in button) {
-          button.setBackgroundLight(light);
-        }
-      }
-      this.controls.set(id, light);
-    }
-    bindCC(id, channel, cc, isAbsolute) {
-      const control = this.controls.get(id);
-      if (!control) throw `Control not found: ${id}`;
-      const port = host.getMidiIn(0);
-      if (isAbsolute) {
-        const matcher = port.createAbsoluteCCValueMatcher(channel, cc);
-        if ("setAdjustValueMatcher" in control) {
-          control.setAdjustValueMatcher(matcher);
-        }
-      } else {
-        const matcher = port.createRelativeSignedBitCCValueMatcher(channel, cc, 128);
-        if ("setAdjustValueMatcher" in control) {
-          control.setAdjustValueMatcher(matcher);
-        }
-      }
-      if ("pressedAction" in control) {
-        const actionMatcher = port.createCCActionMatcher(channel, cc, 127);
-        control.pressedAction().setActionMatcher(actionMatcher);
-      }
-    }
-    bindNote(id, channel, note) {
-      const control = this.controls.get(id);
-      if (!control) throw `Control not found: ${id}`;
-      const port = host.getMidiIn(0);
-      if ("pressedAction" in control) {
-        const matcher = port.createNoteOnActionMatcher(channel, note);
-        control.pressedAction().setActionMatcher(matcher);
-      } else {
-        throw "Binding notes to non-buttons not fully supported yet";
-      }
-    }
-    getControls() {
-      const list = [];
-      this.controls.forEach((control, id) => {
-        let type = "unknown";
-        if ("value" in control) {
-          type = "knob/slider";
-        } else if ("isPressed" in control) {
-          type = "button";
-        }
-        list.push({
-          id,
-          label: control.getName(),
-          type
-        });
-      });
-      return list;
-    }
-    getControlValue(id) {
-      const control = this.controls.get(id);
-      if (!control) throw `Control not found: ${id}`;
-      const c = control;
-      if (typeof c.value === "function") {
-        return c.value().get();
-      }
-      if (typeof c.isPressed === "function") {
-        return c.isPressed().get();
-      }
-      return null;
-    }
-  };
-
   // bitwig-controller/modules/Arranger.ts
   var ArrangerModule = class {
     constructor(host2, sendEvent, application) {
@@ -1326,7 +1157,7 @@
         const marker = this.cueMarkerBank.getItemAt(i);
         marker.name().markInterested();
         marker.position().markInterested();
-        marker.color().markInterested();
+        marker.getColor().markInterested();
         marker.exists().markInterested();
       }
     }
@@ -1403,9 +1234,9 @@
                 name: marker.name().get(),
                 position: marker.position().get(),
                 color: {
-                  r: marker.color().red(),
-                  g: marker.color().green(),
-                  b: marker.color().blue()
+                  r: marker.getColor().red(),
+                  g: marker.getColor().green(),
+                  b: marker.getColor().blue()
                 }
               });
             }
@@ -1445,8 +1276,7 @@
             const b = args[3];
             const marker = this.cueMarkerBank.getItemAt(index);
             if (marker.exists().get()) {
-              marker.color().set(r, g, b);
-              return "OK";
+              throw "Cue marker color is read-only in this Bitwig API version.";
             }
             throw `Marker at index ${index} does not exist`;
           }
@@ -1462,68 +1292,6 @@
             throw `Marker at index ${index} does not exist`;
           }
           throw "Missing parameters (index)";
-      }
-      return void 0;
-    }
-  };
-
-  // bitwig-controller/modules/NoteInput.ts
-  var NoteInputModule = class {
-    constructor(host2) {
-      this.noteInput = host2.getMidiIn(0).createNoteInput("MCP Notes", "80????", "90????", "A0????", "B0????", "D0????", "E0????");
-      this.noteInput.setShouldConsumeEvents(false);
-    }
-    handleRequest(method, params) {
-      const args = params;
-      switch (method) {
-        case "note_input.send_raw_midi":
-          if (!args || args.length < 3) throw "Missing params. Expecting [status, data1, data2]";
-          this.noteInput.sendRawMidiEvent(args[0], args[1], args[2]);
-          return "OK";
-        case "note_input.send_note_on":
-          if (!args || args.length < 3) throw "Missing params. Expecting [channel, key, velocity]";
-          this.noteInput.sendNoteOn(args[0], args[1], args[2]);
-          return "OK";
-        case "note_input.send_note_off":
-          if (!args || args.length < 3) throw "Missing params. Expecting [channel, key, velocity]";
-          this.noteInput.sendNoteOff(args[0], args[1], args[2]);
-          return "OK";
-        case "note_input.send_poly_aftertouch":
-          if (!args || args.length < 3) throw "Missing params. Expecting [channel, key, pressure]";
-          this.noteInput.sendPolyphonicAftertouch(args[0], args[1], args[2]);
-          return "OK";
-      }
-      return void 0;
-    }
-  };
-
-  // bitwig-controller/modules/Midi.ts
-  var MidiModule = class {
-    constructor(host2, sendEvent) {
-      this.sendEvent = sendEvent;
-      this.midiIn = host2.getMidiIn(0);
-      this.midiOut = host2.getMidiOutPort(0);
-      this.midiIn.setMidiCallback((status, data1, data2) => {
-        this.sendEvent("midi.short_message", { status, data1, data2 });
-      });
-      this.midiIn.setSysexCallback((data) => {
-        this.sendEvent("midi.sysex", { data });
-      });
-    }
-    handleRequest(method, params) {
-      switch (method) {
-        case "midi.send_short":
-          if (params && params[0] !== void 0 && params[1] !== void 0 && params[2] !== void 0) {
-            this.midiOut.sendMidi(params[0], params[1], params[2]);
-            return "OK";
-          }
-          throw "Missing parameters (status, data1, data2)";
-        case "midi.send_sysex":
-          if (params && params[0] !== void 0) {
-            this.midiOut.sendSysex(params[0]);
-            return "OK";
-          }
-          throw "Missing parameter (hexString)";
       }
       return void 0;
     }
@@ -1579,7 +1347,8 @@
 
   // bitwig-controller/controller-mcp.ts
   loadAPI(25);
-  host.defineController("BitwigPOC", "BitwigPOC", "0.2", "761be710-90df-4577-8094-01314323214c", "Laurent Huzard");
+  host.defineController("Beat Twin", "BeatTwinMCP", "0.3", "8a36f9da-3e15-4a7c-a58c-b6be5e2ad301", "taenia");
+  host.defineMidiPorts(0, 0);
   var modules = [];
   var activeConnection = null;
   function init() {
@@ -1598,10 +1367,7 @@
     modules.push(new DeviceModule(trackBankModule.trackBank));
     modules.push(new ClipModule(host, sendEvent));
     modules.push(new BrowserModule(host));
-    modules.push(new HardwareSurfaceModule(host));
     modules.push(new ArrangerModule(host, sendEvent, applicationModule.application));
-    modules.push(new NoteInputModule(host));
-    modules.push(new MidiModule(host, sendEvent));
     modules.push(new OscModule(host, sendEvent));
     println(`BitwigPOC Initialized with ${modules.length} modules (v0.2)`);
     const remoteSocket = host.createRemoteConnection("BitwigMCP", 8888);

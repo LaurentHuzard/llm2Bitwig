@@ -29,7 +29,7 @@ export class ArrangerModule implements ControllerModule {
             const marker = this.cueMarkerBank.getItemAt(i);
             marker.name().markInterested();
             marker.position().markInterested();
-            marker.color().markInterested();
+            marker.getColor().markInterested();
             marker.exists().markInterested();
         }
     }
@@ -90,9 +90,9 @@ export class ArrangerModule implements ControllerModule {
                             name: marker.name().get(),
                             position: marker.position().get(),
                             color: {
-                                r: marker.color().red(),
-                                g: marker.color().green(),
-                                b: marker.color().blue()
+                                r: marker.getColor().red(),
+                                g: marker.getColor().green(),
+                                b: marker.getColor().blue()
                             }
                         });
                     }
@@ -141,8 +141,7 @@ export class ArrangerModule implements ControllerModule {
                     const b = args[3] as number;
                     const marker = this.cueMarkerBank.getItemAt(index);
                     if (marker.exists().get()) {
-                        marker.color().set(r, g, b); // Assuming SettableColorValue
-                        return "OK";
+                        throw "Cue marker color is read-only in this Bitwig API version.";
                     }
                     throw `Marker at index ${index} does not exist`;
                 }

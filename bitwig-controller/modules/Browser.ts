@@ -39,20 +39,27 @@ export class BrowserModule implements ControllerModule {
       case "browser.select_result":
         if (params && params[0] !== undefined) {
           const index = params[0] as number;
-          const item = this.resultBank.getItemAt(index);
-          if (item) {
-            item.isSelected().set(true);
-            return "OK";
+          this.popupBrowser.selectFirstFile();
+          for (let i = 0; i < index; i++) {
+            this.popupBrowser.selectNextFile();
           }
-          return `Item not found at index ${index}`;
+          return "OK";
         }
         return "Missing index parameter";
       case "browser.set_filter":
-        if (params && params[0] !== undefined) {
-          this.popupBrowser.smartCollectionColumn().getWildcardFilter().set(params[0] as string);
-          return "OK";
-        }
-        return "Missing filter text parameter";
+        return "Unsupported: Bitwig 6 popup browser does not expose a text filter in the controller API";
+      case "browser.select_first_file":
+        this.popupBrowser.selectFirstFile();
+        return "OK";
+      case "browser.select_last_file":
+        this.popupBrowser.selectLastFile();
+        return "OK";
+      case "browser.select_next_file":
+        this.popupBrowser.selectNextFile();
+        return "OK";
+      case "browser.select_previous_file":
+        this.popupBrowser.selectPreviousFile();
+        return "OK";
       case "browser.commit":
         this.popupBrowser.commit();
         return "OK";

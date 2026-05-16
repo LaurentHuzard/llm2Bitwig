@@ -7,7 +7,7 @@ export class MidiModule implements ControllerModule {
 
     constructor(host: ControllerHost, sendEvent: SendEvent) {
         this.sendEvent = sendEvent;
-        this.midiIn = host.getMidiIn(0);
+        this.midiIn = host.getMidiInPort(0);
         this.midiOut = host.getMidiOutPort(0);
 
         this.midiIn.setMidiCallback((status, data1, data2) => {

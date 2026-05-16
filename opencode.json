@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "bitwig-mcp": {
+      "type": "local",
+      "command": [
+        "./server-mcp-java/build/install/server-mcp/bin/server-mcp"
+      ],
+      "environment": {
+        "BITWIG_MCP_TOOL_PROFILE": "core"
+      },
+      "enabled": true,
+      "timeout": 15000
+    }
+  }
+}

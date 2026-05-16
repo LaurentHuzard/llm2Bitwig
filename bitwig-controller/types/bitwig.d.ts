@@ -82,7 +82,7 @@ interface CueMarker {
   exists(): BooleanValue;
   name(): SettableStringValue;
   position(): SettableBeatTimeValue;
-  color(): SettableColorValue;
+  getColor(): ColorValue;
   launch(quantized: boolean): void;
 }
 
@@ -237,6 +237,13 @@ interface CursorDevice {
   browseToInsertBeforeDevice(): void;
   browseToInsertAfterDevice(): void;
   browseToReplaceDevice(): void;
+  beforeDeviceInsertionPoint(): InsertionPoint;
+  afterDeviceInsertionPoint(): InsertionPoint;
+  replaceDeviceInsertionPoint(): InsertionPoint;
+}
+
+interface InsertionPoint {
+  browse(): void;
 }
 
 interface Device {
@@ -290,7 +297,11 @@ interface BrowserResultsColumn {
 interface PopupBrowser {
   exists(): BooleanValue;
   resultsColumn(): BrowserResultsColumn;
-  smartCollectionColumn(): { getWildcardFilter(): { set(value: string): void } };
+  smartCollectionColumn(): BrowserFilterColumn;
+  selectFirstFile(): void;
+  selectLastFile(): void;
+  selectNextFile(): void;
+  selectPreviousFile(): void;
   commit(): void;
   cancel(): void;
 }
@@ -470,8 +481,9 @@ interface Host {
 
 interface ControllerHost extends Host {
   defineController(name: string, vendor: string, version: string, id: string, author: string): void;
+  defineMidiPorts(numInports: number, numOutports: number): void;
   createArranger(): Arranger;
-  getMidiIn(index: number): MidiIn;
+  getMidiInPort(index: number): MidiIn;
   getMidiOutPort(index: number): MidiOut;
   createTransport(): Transport;
   createApplication(): Application;

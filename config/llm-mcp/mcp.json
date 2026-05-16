@@ -2,11 +2,12 @@
   "mcp_servers": [
     {
       "name": "bitwig-mcp",
-      "command": "node",
+      "command": "/home/taenia/Code/lolOS/Projects/beat-twin/server-mcp-java/build/install/server-mcp/bin/server-mcp",
       "args": [
-        "/home/taenia/Code/lolOS/Projects/beat-twin/dist/index.js"
       ],
-      "env": {}
+      "env": {
+        "BITWIG_MCP_TOOL_PROFILE": "core"
+      }
     }
   ],
   "webui_mcp_proxy": true

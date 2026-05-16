@@ -7,16 +7,14 @@ import { MixerModule } from "./modules/Mixer";
 import { SceneBankModule } from "./modules/SceneBank";
 import { TrackBankModule } from "./modules/TrackBank";
 import { TransportModule } from "./modules/Transport";
-import { HardwareSurfaceModule } from "./modules/HardwareSurface";
 import { ArrangerModule } from "./modules/Arranger";
-import { NoteInputModule } from "./modules/NoteInput";
-import { MidiModule } from "./modules/Midi";
 import { OscModule } from "./modules/Osc";
 import type { ControllerModule, SendEvent } from "./types/controller";
 
 loadAPI(25);
 
-host.defineController("BitwigPOC", "BitwigPOC", "0.2", "761be710-90df-4577-8094-01314323214c", "Laurent Huzard");
+host.defineController("Beat Twin", "BeatTwinMCP", "0.3", "8a36f9da-3e15-4a7c-a58c-b6be5e2ad301", "taenia");
+host.defineMidiPorts(0, 0);
 
 type RequestMessage = {
   id?: string | number | null;
@@ -61,10 +59,7 @@ function init(): void {
   modules.push(new DeviceModule(trackBankModule.trackBank));
   modules.push(new ClipModule(host, sendEvent));
   modules.push(new BrowserModule(host));
-  modules.push(new HardwareSurfaceModule(host));
   modules.push(new ArrangerModule(host, sendEvent, applicationModule.application));
-  modules.push(new NoteInputModule(host));
-  modules.push(new MidiModule(host, sendEvent));
   modules.push(new OscModule(host, sendEvent));
 
   println(`BitwigPOC Initialized with ${modules.length} modules (v0.2)`);

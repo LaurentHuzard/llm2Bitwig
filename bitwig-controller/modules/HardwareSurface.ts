@@ -143,7 +143,7 @@ export class HardwareSurfaceModule implements ControllerModule {
         const control = this.controls.get(id);
         if (!control) throw `Control not found: ${id}`;
 
-        const port = host.getMidiIn(0);
+        const port = host.getMidiInPort(0);
 
         if (isAbsolute) {
             const matcher = port.createAbsoluteCCValueMatcher(channel, cc);
@@ -170,7 +170,7 @@ export class HardwareSurfaceModule implements ControllerModule {
         const control = this.controls.get(id);
         if (!control) throw `Control not found: ${id}`;
 
-        const port = host.getMidiIn(0);
+        const port = host.getMidiInPort(0);
 
         if ('pressedAction' in control) {
             const matcher = port.createNoteOnActionMatcher(channel, note);

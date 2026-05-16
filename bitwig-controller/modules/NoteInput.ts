@@ -11,7 +11,7 @@ export class NoteInputModule implements ControllerModule {
         // B0???? = CC (any channel)
         // D0???? = Channel Pressure (any channel)
         // E0???? = Pitch Bend (any channel)
-        this.noteInput = host.getMidiIn(0).createNoteInput("MCP Notes", "80????", "90????", "A0????", "B0????", "D0????", "E0????");
+        this.noteInput = host.getMidiInPort(0).createNoteInput("MCP Notes", "80????", "90????", "A0????", "B0????", "D0????", "E0????");
         this.noteInput.setShouldConsumeEvents(false); // Let scripts process if needed, though usually we want direct
     }
 

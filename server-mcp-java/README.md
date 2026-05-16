@@ -53,6 +53,28 @@ Current catalog is loaded from `tools.json` and includes **165 tools** across do
 - `note_*`, `midi_*`, `drumpad_*`, `groove_*`
 - `ear_*`
 
+To avoid saturating agent context, the server exposes the compact `core` profile by default. The full catalog stays available internally and can be enabled when doing migration, audit, or deep Bitwig debugging work.
+
+Profiles are selected with `BITWIG_MCP_TOOL_PROFILE`:
+
+```bash
+# Default: compact everyday agent surface, currently 38 tools
+BITWIG_MCP_TOOL_PROFILE=core ./gradlew run
+
+# Full raw catalog, currently 165 tools
+BITWIG_MCP_TOOL_PROFILE=full ./gradlew run
+
+# Domain slices can be combined
+BITWIG_MCP_TOOL_PROFILE=transport,track,clip ./gradlew run
+```
+
+Supported profile tokens:
+
+- `core` - curated everyday surface for project summary, transport, tracks, clips, scenes, selected device controls, browser basics, and ear status/analysis.
+- `full`, `all`, or `*` - expose every entry from `tools.json`.
+- Any domain prefix such as `transport`, `track`, `clip`, `scene`, `device`, `browser`, `ear`, `mixer`, `arranger`, `application`, `note`, `drumpad`, or `groove`.
+- Any exact tool name from `tools.json`.
+
 To inspect available tools quickly:
 
 ```bash
@@ -147,6 +169,7 @@ If no MCP peer is connected over stdio, startup may fail quickly with `Failed to
 - Bitwig TCP host/port are currently fixed in code (`127.0.0.1:8888`).
 - Ear service base URL defaults to `http://127.0.0.1:8001` and is currently not wired to env config in `McpServerApp`.
 - No MCP prompts are registered in this Java server (`prompts(false)`).
+- Tool exposure is profile-filtered. Use `BITWIG_MCP_TOOL_PROFILE=full` if an MCP host needs the complete schema catalog.
 
 ## Troubleshooting
 

@@ -1,4 +1,33 @@
-# Current Orbit Loop Task: Semantic Audio Analysis Dev Slice
+# Current Orbit Loop Task: Bitwig MCP Tool Profile Compression
+
+## Goal
+
+Reduce Bitwig MCP tool-list context pressure for agents without deleting the full Bitwig control surface.
+
+## Scope
+
+- Keep `server-mcp-java/` as the active MCP server lane.
+- Preserve the complete `tools.json` catalog.
+- Add a compact default profile for everyday agent work.
+- Document how to opt back into the full catalog or domain-specific slices.
+
+## Deliverables
+
+- `server-mcp-java/src/main/java/com/beattwin/mcp/tools/BitwigTools.java`
+- `server-mcp-java/src/test/java/com/beattwin/mcp/tools/BitwigToolsTest.java`
+- `server-mcp-java/README.md`
+- `README.md`
+
+## Acceptance Checks
+
+- `core` profile exposes a compact tool surface.
+- `full` profile still exposes the complete catalog.
+- Domain profiles can be combined with comma-separated tokens.
+- `./gradlew test` passes in `server-mcp-java/`.
+
+---
+
+# Previous Task: Semantic Audio Analysis Dev Slice
 
 ## Goal
 

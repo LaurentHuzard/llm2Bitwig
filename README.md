@@ -179,6 +179,8 @@ cd server-mcp-java
 ./gradlew run
 ```
 
+The Java server defaults to a compact `core` tool profile so agents do not receive all 165 tool schemas at once. Use `BITWIG_MCP_TOOL_PROFILE=full ./gradlew run` for the complete catalog, or combine domain slices such as `BITWIG_MCP_TOOL_PROFILE=transport,track,clip ./gradlew run`.
+
 *(Alternatively, to run the legacy Node server: `node server-mcp/dist/index.js`)*
 
 ### 2. Start the Ear Service Backend

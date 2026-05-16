@@ -178,13 +178,21 @@ export class CursorModule implements ControllerModule {
         this.cursorDevice.selectLast();
         return "OK";
       case "device.browse_insert_before":
-        this.cursorDevice.browseToInsertBeforeDevice();
+        this.cursorDevice.beforeDeviceInsertionPoint().browse();
         return "OK";
       case "device.browse_insert_after":
-        this.cursorDevice.browseToInsertAfterDevice();
+        if (this.cursorDevice.exists().get()) {
+          this.cursorDevice.afterDeviceInsertionPoint().browse();
+        } else {
+          this.cursorDevice.beforeDeviceInsertionPoint().browse();
+        }
         return "OK";
       case "device.browse_replace":
-        this.cursorDevice.browseToReplaceDevice();
+        if (this.cursorDevice.exists().get()) {
+          this.cursorDevice.replaceDeviceInsertionPoint().browse();
+        } else {
+          this.cursorDevice.beforeDeviceInsertionPoint().browse();
+        }
         return "OK";
       case "cursor_track.get_status":
         return {
