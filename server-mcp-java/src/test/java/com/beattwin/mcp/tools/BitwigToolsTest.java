@@ -26,8 +26,8 @@ class BitwigToolsTest {
         var coreTools = tools.getTools("core");
         var fullTools = tools.getTools("full");
 
-        assertEquals(39, coreTools.size());
-        assertEquals(166, fullTools.size());
+        assertEquals(14, coreTools.size());
+        assertEquals(167, fullTools.size());
         assertTrue(coreTools.size() < fullTools.size());
     }
 

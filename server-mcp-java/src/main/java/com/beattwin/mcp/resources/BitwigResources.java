@@ -69,6 +69,28 @@ public class BitwigResources {
                 ))))
         ));
 
+        specs.add(new AsyncResourceSpecification(
+            Resource.builder()
+                .uri("bitwig://tools/catalog")
+                .name("MCP Tools Catalog")
+                .mimeType("application/json")
+                .description("Catalog of all advanced MCP tools, including their names, descriptions, and schemas")
+                .build(),
+            (exchange, req) -> {
+                try (java.io.InputStream in = getClass().getResourceAsStream("/tools.json")) {
+                    if (in == null) throw new RuntimeException("tools.json not found");
+                    byte[] bytes = in.readAllBytes();
+                    return Mono.just(new ReadResourceResult(List.of(
+                        new TextResourceContents("bitwig://tools/catalog", "application/json", new String(bytes, java.nio.charset.StandardCharsets.UTF_8))
+                    )));
+                } catch (Exception e) {
+                    return Mono.just(new ReadResourceResult(List.of(
+                        new TextResourceContents("bitwig://tools/catalog", "application/json", "{\"error\": \"" + e.getMessage() + "\"}")
+                    )));
+                }
+            }
+        ));
+
         return specs;
     }
 }

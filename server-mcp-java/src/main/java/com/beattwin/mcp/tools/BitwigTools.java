@@ -29,53 +29,39 @@ public class BitwigTools {
 
     private static final Set<String> CORE_TOOL_NAMES = Set.of(
             "mcp_execute_advanced_tool",
+            "mcp_search_tools",
             "project_get_summary",
             "transport_play",
             "transport_stop",
             "transport_restart",
-            "transport_get_tempo",
-            "transport_set_tempo",
-            "transport_get_position",
-            "transport_set_position",
             "transport_playing_status",
             "track_bank_get_status",
             "track_list",
-            "track_get_info",
             "track_bank_select",
-            "track_rename",
-            "track_set_color",
-            "clip_get_grid",
             "clip_get_status",
             "clip_launch",
             "clip_stop",
-            "clip_create",
-            "clip_delete",
-            "scene_list",
-            "scene_launch",
-            "cursor_track_get_status",
-            "cursor_device_get_status",
-            "device_get_status",
-            "device_list",
-            "device_get_remote_controls",
-            "device_set_remote_control",
-            "browser_get_status",
-            "browser_set_filter",
-            "browser_list_results",
-            "browser_select_result",
-            "browser_commit",
-            "browser_cancel",
-            "ear_status",
-            "ear_get_levels",
-            "ear_analyze"
+            "ear_status"
     );
 
     private final BitwigClient bitwigClient;
     private final EarServiceClient earServiceClient;
     private final ObjectMapper mapper = new ObjectMapper();
+    private final List<Map<String, Object>> toolsDef;
 
     public BitwigTools(BitwigClient bitwigClient, EarServiceClient earServiceClient) {
         this.bitwigClient = bitwigClient;
         this.earServiceClient = earServiceClient;
+        this.toolsDef = loadToolsDef();
+    }
+
+    private List<Map<String, Object>> loadToolsDef() {
+        try (InputStream in = getClass().getResourceAsStream("/tools.json")) {
+            if (in == null) throw new RuntimeException("tools.json not found");
+            return mapper.readValue(in, new TypeReference<>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load tools.json", e);
+        }
     }
 
     public List<AsyncToolSpecification> getTools() {
@@ -85,11 +71,8 @@ public class BitwigTools {
     public List<AsyncToolSpecification> getTools(String profileSpec) {
         List<AsyncToolSpecification> specs = new ArrayList<>();
         Set<String> profileTokens = parseProfile(profileSpec);
-        try (InputStream in = getClass().getResourceAsStream("/tools.json")) {
-            if (in == null) throw new RuntimeException("tools.json not found");
-            
-            List<Map<String, Object>> toolsDef = mapper.readValue(in, new TypeReference<>() {});
-            for (Map<String, Object> def : toolsDef) {
+        try {
+            for (Map<String, Object> def : this.toolsDef) {
                 String name = (String) def.get("name");
                 if (!shouldExposeTool(name, profileTokens)) {
                     continue;
@@ -120,7 +103,7 @@ public class BitwigTools {
                 specs.add(spec);
             }
             System.err.printf("Registered %d/%d Bitwig MCP tools using profile '%s'%n",
-                    specs.size(), toolsDef.size(), String.join(",", profileTokens));
+                    specs.size(), this.toolsDef.size(), String.join(",", profileTokens));
             return specs;
         } catch (Exception e) {
             throw new RuntimeException("Failed to register tools", e);
@@ -171,6 +154,18 @@ public class BitwigTools {
                 nestedArgs = Collections.emptyMap();
             }
             return execute(toolName, nestedArgs);
+        }
+        if ("mcp_search_tools".equals(name)) {
+            String query = ((String) args.getOrDefault("query", "")).toLowerCase();
+            var results = mapper.createArrayNode();
+            for (Map<String, Object> def : toolsDef) {
+                String toolName = (String) def.get("name");
+                String desc = (String) def.getOrDefault("description", "");
+                if (toolName.toLowerCase().contains(query) || desc.toLowerCase().contains(query)) {
+                    results.add(mapper.valueToTree(def));
+                }
+            }
+            return CompletableFuture.completedFuture(results);
         }
         if (name.startsWith("ear_")) {
             return handleEarService(name, args);

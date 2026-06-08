@@ -1,5 +1,19 @@
 [
   {
+    "name": "mcp_search_tools",
+    "description": "Search the MCP tools catalog for a keyword or query. Use this to discover available advanced tools and their schemas when they are not in your direct tool list.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Keyword to search for in tool names or descriptions (e.g. 'track', 'browser', 'device')"
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  {
     "name": "mcp_execute_advanced_tool",
     "description": "Execute any advanced/non-core Bitwig tool from the full catalog. Use this tool if the specific action you want to perform is not in your direct list of tools. For example, to create a track, change volume, or toggle device parameters.",
     "inputSchema": {
