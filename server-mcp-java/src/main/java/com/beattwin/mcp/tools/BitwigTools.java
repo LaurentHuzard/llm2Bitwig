@@ -28,6 +28,7 @@ public class BitwigTools {
     private static final String DEFAULT_TOOL_PROFILE = "core";
 
     private static final Set<String> CORE_TOOL_NAMES = Set.of(
+            "mcp_execute_advanced_tool",
             "project_get_summary",
             "transport_play",
             "transport_stop",
@@ -160,6 +161,17 @@ public class BitwigTools {
     }
 
     private CompletableFuture<JsonNode> execute(String name, Map<String, Object> args) {
+        if ("mcp_execute_advanced_tool".equals(name)) {
+            String toolName = (String) args.get("tool_name");
+            Object rawArgs = args.get("arguments");
+            Map<String, Object> nestedArgs;
+            if (rawArgs instanceof Map) {
+                nestedArgs = (Map<String, Object>) rawArgs;
+            } else {
+                nestedArgs = Collections.emptyMap();
+            }
+            return execute(toolName, nestedArgs);
+        }
         if (name.startsWith("ear_")) {
             return handleEarService(name, args);
         } else {

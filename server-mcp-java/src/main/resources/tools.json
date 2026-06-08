@@ -1,5 +1,23 @@
 [
   {
+    "name": "mcp_execute_advanced_tool",
+    "description": "Execute any advanced/non-core Bitwig tool from the full catalog. Use this tool if the specific action you want to perform is not in your direct list of tools. For example, to create a track, change volume, or toggle device parameters.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tool_name": {
+          "type": "string",
+          "description": "The exact name of the tool to execute (e.g., 'application_create_instrument_track')"
+        },
+        "arguments": {
+          "type": "object",
+          "description": "The arguments object to pass to the tool (e.g., {} or { 'index': 0 })"
+        }
+      },
+      "required": ["tool_name", "arguments"]
+    }
+  },
+  {
     "name": "ear_status",
     "description": "Get the current status and levels from the ear-service",
     "inputSchema": {
