@@ -123,7 +123,11 @@
           }
           return "Missing index parameter";
         case "browser.set_filter":
-          return "Unsupported: Bitwig 6 popup browser does not expose a text filter in the controller API";
+          if (params && params[0] !== void 0) {
+            this.popupBrowser.smartCollectionColumn().getWildcardFilter().set(params[0]);
+            return "OK";
+          }
+          return "Missing filter text parameter";
         case "browser.select_first_file":
           this.popupBrowser.selectFirstFile();
           return "OK";

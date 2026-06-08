@@ -47,7 +47,11 @@ export class BrowserModule implements ControllerModule {
         }
         return "Missing index parameter";
       case "browser.set_filter":
-        return "Unsupported: Bitwig 6 popup browser does not expose a text filter in the controller API";
+        if (params && params[0] !== undefined) {
+          this.popupBrowser.smartCollectionColumn().getWildcardFilter().set(params[0] as string);
+          return "OK";
+        }
+        return "Missing filter text parameter";
       case "browser.select_first_file":
         this.popupBrowser.selectFirstFile();
         return "OK";
