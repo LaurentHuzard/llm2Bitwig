@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> **Historical repository — superseded by [Beat Twin](https://github.com/LaurentHuzard/beat-twin).**
+> New Bitwig/MCP development belongs in Beat Twin. This repository remains available only as the original proof of concept and should be archived after the redirect PR is merged.
+
 # Bitwig MCP POC
 
 **A Proof of Concept bridging [Bitwig Studio](https://www.bitwig.com/) with the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).**
